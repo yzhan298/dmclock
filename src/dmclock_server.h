@@ -6,6 +6,7 @@
 
 
 #define DEBUGGER
+#define DEBDIST 1
 
 
 #pragma once
@@ -15,6 +16,7 @@
 #include <assert.h>
 
 #include <memory>
+#include <vector>
 #include <map>
 #include <deque>
 #include <queue>
@@ -304,6 +306,11 @@ namespace crimson {
 
     public:
 
+#if DEBDIST
+      std::vector<double> rtags;
+#endif
+
+
       PriorityQueue(ClientInfoFunc _client_info_f,
 		    CanHandleRequestFunc _can_handle_f,
 		    HandleRequestFunc _handle_f,
@@ -316,6 +323,9 @@ namespace crimson {
 	prop_sched_count(0),
 	limit_break_sched_count(0),
 	finishing(false)
+#if DEBDIST
+	,rtags(10000)
+#endif
       {
 	sched_ahead_thd = std::thread(&PriorityQueue::run_sched_ahead, this);
       }
@@ -390,6 +400,11 @@ namespace crimson {
 
 	// copy tag to previous tag for client
 	client_it->second.prev_tag = entry->tag;
+#if DEBDIST
+	if (1 == client_id) {
+	  rtags.push_back(entry->tag.reservation);
+	}
+#endif
 
 	if (0.0 != entry->tag.reservation) {
 	  res_q.push(entry);
