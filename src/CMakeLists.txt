@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-set(local_flags)
+set(local_flags -DDBG_DIST=1)
 
 set(core_srcs dmclock_server.cc dmclock_util.cc crimson/run_every.cc)
 set(test_srcs test_server.cc test_client.cc test.cc)

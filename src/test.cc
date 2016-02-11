@@ -278,7 +278,7 @@ int main(int argc, char* argv[]) {
       std::fixed << total << std::endl;
   }
 
-#if DEBDIST
+#if DBG_DIST
   for (auto& s : servers) {
     std::map<int,int> tcount;
     auto& rtags = s.second->get_priority_queue().get_rtags();
@@ -301,6 +301,8 @@ int main(int argc, char* argv[]) {
       std::cout << i.first << ": " << i.second << std::endl;
     }
     std::cout << "weighted rho sum: " << sum << std::endl;
+    std::cout << "average rho: " << std::setprecision(4) <<
+      double(sum) / rtags.size() << std::endl;
   }
 #endif
 

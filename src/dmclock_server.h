@@ -305,7 +305,7 @@ namespace crimson {
 
     public:
 
-#if DEBDIST
+#if DBG_DIST
       using tpair = std::pair<double,int>;
       std::vector<tpair> rtags;
 
@@ -399,7 +399,7 @@ namespace crimson {
 
 	// copy tag to previous tag for client
 	client_it->second.prev_tag = entry->tag;
-#if DEBDIST
+#if DBG_DIST
 	if (1 == client_id) {
 	  rtags.emplace_back(tpair(entry->tag.reservation, req_params.rho));
 	}
