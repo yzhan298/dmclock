@@ -4,6 +4,7 @@
  * Copyright (C) 2015 Red Hat Inc.
  */
 
+
 #include <unistd.h>
 
 #include <memory>
@@ -276,6 +277,32 @@ int main(int argc, char* argv[]) {
     std::cout << std::setw(data_w) << std::setprecision(data_prec) <<
       std::fixed << total << std::endl;
   }
+
+#if DEBDIST
+  for (auto& s : servers) {
+    std::map<int,int> tcount;
+    auto& rtags = s.second->get_priority_queue().get_rtags();
+    int count = 0;
+    uint64_t rho_count = 0;
+    for (auto& i : rtags) {
+      tcount[i.second]++;
+      rho_count += i.second;
+#if 0
+      std::cout << std::setw(4) << count++ << ": " <<
+	crimson::dmclock::format_time(i.first) << ", " <<
+	i.second << ", " << rho_count << std::endl;
+#endif
+    }
+    std::cout << "rtags: " << rtags.size() << std::endl;
+    std::cout << "rho_count: " << rho_count << std::endl;
+    uint32_t sum = 0;
+    for (auto& i : tcount) {
+      sum += i.first * i.second;
+      std::cout << i.first << ": " << i.second << std::endl;
+    }
+    std::cout << "weighted rho sum: " << sum << std::endl;
+  }
+#endif
 
   // clean up clients then servers
 

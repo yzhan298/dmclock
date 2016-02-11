@@ -6,7 +6,6 @@
 
 
 #define DEBUGGER
-#define DEBDIST 1
 
 
 #pragma once
@@ -307,7 +306,10 @@ namespace crimson {
     public:
 
 #if DEBDIST
-      std::vector<double> rtags;
+      using tpair = std::pair<double,int>;
+      std::vector<tpair> rtags;
+
+      const std::vector<tpair>& get_rtags() const { return rtags; }
 #endif
 
 
@@ -323,9 +325,6 @@ namespace crimson {
 	prop_sched_count(0),
 	limit_break_sched_count(0),
 	finishing(false)
-#if DEBDIST
-	,rtags(10000)
-#endif
       {
 	sched_ahead_thd = std::thread(&PriorityQueue::run_sched_ahead, this);
       }
@@ -402,7 +401,7 @@ namespace crimson {
 	client_it->second.prev_tag = entry->tag;
 #if DEBDIST
 	if (1 == client_id) {
-	  rtags.push_back(entry->tag.reservation);
+	  rtags.emplace_back(tpair(entry->tag.reservation, req_params.rho));
 	}
 #endif
 
