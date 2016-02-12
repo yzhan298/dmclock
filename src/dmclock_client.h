@@ -99,8 +99,18 @@ namespace crimson {
 	// empty
       }
 
-      void track_resp(const RespParams<S>& resp_params) {
+      template<typename C>
+      void track_resp(const C& client, const RespParams<S>& resp_params) {
 	DataGuard g(data_mtx);
+#if DBG_DIST
+	if (0 == client) {
+	  Time now = get_time();
+	  if (uint64_t(now) % 10 == 0) {
+	    std::cout << "resp -- c:" << client << " s:" << resp_params.server <<
+	      " p:" << resp_params.phase << std::endl;
+	  }
+	}
+#endif
 
 	auto it = service_map.find(resp_params.server);
 	if (service_map.end() == it) {

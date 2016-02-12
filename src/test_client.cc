@@ -122,7 +122,7 @@ void TestClient::run_resp() {
 
       TestResponse& resp = item.response;
 
-      service_tracker.track_resp(item.resp_params);
+      service_tracker.track_resp(id, item.resp_params);
 
       if (info >= 3) {
 	std::cout << resp << std::endl;
