@@ -103,7 +103,7 @@ namespace crimson {
       void track_resp(const C& client, const RespParams<S>& resp_params) {
 	DataGuard g(data_mtx);
 #if DBG_DIST
-	if (1 == client) {
+	if (1 == client && 'b' == resp_params.server) {
 	  Time now = get_time();
 	  if (uint64_t(now) % 10 == 0) {
 	    std::cout << "resp -- t:" << format_time(now) <<
@@ -134,6 +134,15 @@ namespace crimson {
       template<typename C>
       ReqParams<C> get_req_params(const C& client, const S& server) {
 	DataGuard g(data_mtx);
+#if DBG_DIST
+	if (1 == client && 'a' == server) {
+	  Time now = get_time();
+	  if (uint64_t(now) % 10 == 0) {
+	    std::cout << "req -- t:" << format_time(now) <<
+	      " c:" << client << " s:" << server << std::endl;
+	  }
+	}
+#endif
 	auto it = service_map.find(server);
 	if (service_map.end() == it) {
 	  service_map.emplace(server, ServerInfo(delta_counter, rho_counter));
