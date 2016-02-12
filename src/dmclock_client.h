@@ -103,10 +103,11 @@ namespace crimson {
       void track_resp(const C& client, const RespParams<S>& resp_params) {
 	DataGuard g(data_mtx);
 #if DBG_DIST
-	if (0 == client) {
+	if (1 == client) {
 	  Time now = get_time();
 	  if (uint64_t(now) % 10 == 0) {
-	    std::cout << "resp -- c:" << client << " s:" << resp_params.server <<
+	    std::cout << "resp -- t:" << format_time(now) <<
+	      " c:" << client << " s:" << resp_params.server <<
 	      " p:" << resp_params.phase << std::endl;
 	  }
 	}
