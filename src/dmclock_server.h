@@ -308,6 +308,11 @@ namespace crimson {
       Duration              check_time;
       std::deque<MarkPoint> clean_mark_points;
 
+      std::atomic_long        req_comp_count;
+      std::mutex              req_comp_mtx;
+      std::condition_variable req_comp_cv;
+      std::thread             req_comp_thd;
+
     public:
 
       PriorityQueue(ClientInfoFunc _client_info_f,
@@ -326,7 +331,9 @@ namespace crimson {
 	idle_age(std::chrono::duration_cast<Duration>(_idle_age)),
 	erase_age(std::chrono::duration_cast<Duration>(_erase_age)),
 	check_time(std::chrono::duration_cast<Duration>(_check_time)),
-	cleaning_job(_check_time, std::bind(&PriorityQueue::do_clean, this))
+	cleaning_job(_check_time, std::bind(&PriorityQueue::do_clean, this)),
+	req_comp_count(0),
+	req_comp_thd(&PriorityQueue::run_req_comp, this)
       {
 	assert(_erase_age >= _idle_age);
       }
@@ -335,7 +342,9 @@ namespace crimson {
       ~PriorityQueue() {
 	finishing = true;
 	sched_ahead_cv.notify_one();
+	req_comp_cv.notify_one();
 	sched_ahead_thd.join();
+	req_comp_thd.join();
       }
 
 
@@ -436,8 +445,8 @@ namespace crimson {
 
 
       void request_completed() {
-	DataGuard g(data_mtx);
-	schedule_request();
+	++req_comp_count;
+	req_comp_cv.notify_one();
       }
 
 
@@ -490,10 +499,13 @@ namespace crimson {
       }
 
 
-      // data_mtx should be held when called
-      void schedule_request() {
+      // data_mtx should be held when called. Returns true if it was
+      // able to schedule a request, false if it was unable (either
+      // due to the outbound queue not accpeting requests or no
+      // requests that could be scheduled.
+      bool schedule_request() {
 	if (!can_handle_f()) {
-	  return;
+	  return false;
 	}
 
 	Time now = get_time();
@@ -524,7 +536,7 @@ namespace crimson {
 	if (!res_q.empty() && res_q.top()->tag.reservation <= now) {
 	  (void) submit_top_request(res_q, PhaseType::reservation);
 	  ++res_sched_count;
-	  return;
+	  return true;
 	}
 
 	// no existing reservations before now, so try weight-based
@@ -562,7 +574,7 @@ namespace crimson {
 	  C client = submit_top_request(ready_q, PhaseType::priority);
 	  reduce_reservation_tags(client);
 	  ++prop_sched_count;
-	  return;
+	  return true;
 	}
 
 	if (allowLimitBreak) {
@@ -570,7 +582,7 @@ namespace crimson {
 	    C client = submit_top_request(prop_q, PhaseType::priority);
 	    reduce_reservation_tags(client);
 	    ++limit_break_sched_count;
-	    return;
+	    return true;
 	  }
 	}
 
@@ -587,6 +599,8 @@ namespace crimson {
 	if (next_call < TimeMax) {
 	  sched_at(next_call);
 	}
+
+	return false;
       } // schedule_request
 
 
@@ -623,7 +637,7 @@ namespace crimson {
 	    l.lock();
 	  }
 	}
-      }
+      } // run_sched_ahead
 
 
       void sched_at(Time when) {
@@ -633,6 +647,39 @@ namespace crimson {
 	  sched_ahead_cv.notify_one();
 	}
       }
+
+
+      void run_req_comp() {
+	std::unique_lock<std::mutex> l(req_comp_mtx);
+
+	while (!finishing) {
+	  while (0 == req_comp_count.load()) {
+	    req_comp_cv.wait(l);
+	  }
+
+	  if (finishing) {
+	    break;
+	  }
+
+	  l.unlock();
+
+	  auto count = req_comp_count.fetch_sub(1);
+	  while (count > 0 && !finishing) {
+	    DataGuard g(data_mtx);
+	    bool did_sched = schedule_request();
+	    if (!did_sched) {
+	      // if couldn't schedule anything, no reason to keep trying
+	      req_comp_count = 0;
+	    }
+
+	    // prepare for next iteration
+	    count = req_comp_count.fetch_sub(1);
+	  }
+	  ++req_comp_count; // since we decremented below 0, undo last dec
+
+	  l.lock();
+	} // while
+      } // run_req_comp
 
 
     private:
