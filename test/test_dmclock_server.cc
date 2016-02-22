@@ -115,6 +115,7 @@ namespace crimson {
     } // TEST
 
 
+#if 1
     TEST(dmclock_server, reservation_timing) {
       using ClientId = int;
       using Queue = std::unique_ptr<dmc::PriorityQueue<ClientId,Request>>;
@@ -125,13 +126,6 @@ namespace crimson {
       std::vector<dmc::Time> times;
       std::mutex times_mtx;
       using Guard = std::lock_guard<decltype(times_mtx)>;
-
-#if 0
-      bool completed = false;
-      std::mutex completed_mtx;
-      std::condition_variable completed_cv;
-      using Lock = std::unique_lock<std::mutex>;
-#endif
 
       // reservation every second
       dmc::ClientInfo ci(0.0, 1.0, 0.0);
@@ -147,6 +141,9 @@ namespace crimson {
 	  times.emplace_back(dmc::get_time());
 	}
 	pq->request_completed();
+#if 1
+	std::cout << "COMPLETED" << std::endl;
+#endif
       };
 
       pq = Queue(new dmc::PriorityQueue<ClientId,Request>(client_info_f,
@@ -157,16 +154,19 @@ namespace crimson {
       Request req;
       ReqParams<ClientId> req_params(client, 1, 1);
 
+      std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+
       for (int i = 0; i < 5; ++i) {
 	pq->add_request(req, req_params, dmc::get_time());
       }
 
       {
 	Guard g(times_mtx);
-	std::this_thread::sleep_for(std::chrono::milliseconds(5500));
+	std::this_thread::sleep_for(std::chrono::milliseconds(15500));
 	EXPECT_EQ(5, times.size()) <<
 	  "after 5.5 seconds, we should have 5 requests times at 1 second apart";
       }
     } // TEST
+#endif
   } // namespace dmclock
 } // namespace crimson

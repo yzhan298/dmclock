@@ -447,6 +447,9 @@ namespace crimson {
       void request_completed() {
 	++req_comp_count;
 	req_comp_cv.notify_one();
+#if 1
+	std::cout << "in request_completed" << std::endl;
+#endif
       }
 
 
@@ -641,6 +644,9 @@ namespace crimson {
 
 
       void sched_at(Time when) {
+#if 1
+	std::cout << "sched_at called" << std::endl;
+#endif
 	std::lock_guard<std::mutex> l(sched_ahead_mtx);
 	if (TimeZero == sched_ahead_when || when < sched_ahead_when) {
 	  sched_ahead_when = when;
@@ -650,23 +656,41 @@ namespace crimson {
 
 
       void run_req_comp() {
+#if 1
+	    std::cout << "top" << std::endl;
+#endif
 	std::unique_lock<std::mutex> l(req_comp_mtx);
 
-	while (!finishing) {
-	  while (0 == req_comp_count.load()) {
+	while (true) {
+	  while (!finishing && 0 == req_comp_count.load()) {
+	    std::cout << "waiting:" << finishing <<
+	      " & req_comp_count:" << req_comp_count.load() << std::endl;
 	    req_comp_cv.wait(l);
+#if 1
+	    std::cout << "done waiting:" << finishing <<
+	      " & req_comp_count:" << req_comp_count.load() << std::endl;
+#endif
 	  }
+#if 1
+	    std::cout << "OUT" << std::endl;
+#endif
+
+	  l.unlock();
 
 	  if (finishing) {
 	    break;
 	  }
 
-	  l.unlock();
-
 	  auto count = req_comp_count.fetch_sub(1);
-	  while (count > 0 && !finishing) {
-	    DataGuard g(data_mtx);
-	    bool did_sched = schedule_request();
+	  while (!finishing && count > 0) {
+	    bool did_sched;
+	    {
+	      DataGuard g(data_mtx);
+	      did_sched = schedule_request();
+	    }
+#if 1
+	    std::cout << "SCHEDULING " << did_sched << std::endl;
+#endif
 	    if (!did_sched) {
 	      // if couldn't schedule anything, no reason to keep trying
 	      req_comp_count = 0;
@@ -675,10 +699,19 @@ namespace crimson {
 	    // prepare for next iteration
 	    count = req_comp_count.fetch_sub(1);
 	  }
+	  if (finishing) {
+	    break;
+	  }
+	  // else...
 	  ++req_comp_count; // since we decremented below 0, undo last dec
 
 	  l.lock();
 	} // while
+
+#if 1
+	std::cout << "DONE" << std::endl;
+#endif
+
       } // run_req_comp
 
 
