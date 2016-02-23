@@ -302,7 +302,7 @@ namespace crimson {
       size_t prop_sched_count = 0;
       size_t limit_break_sched_count = 0;
 
-      RunEvery              cleaning_job;
+      std::unique_ptr<RunEvery> cleaning_job;
       Duration              idle_age;
       Duration              erase_age;
       Duration              check_time;
@@ -327,15 +327,18 @@ namespace crimson {
 	handle_f(_handle_f),
 	allowLimitBreak(_allowLimitBreak),
 	finishing(false),
-	sched_ahead_thd(&PriorityQueue::run_sched_ahead, this),
 	idle_age(std::chrono::duration_cast<Duration>(_idle_age)),
 	erase_age(std::chrono::duration_cast<Duration>(_erase_age)),
 	check_time(std::chrono::duration_cast<Duration>(_check_time)),
-	cleaning_job(_check_time, std::bind(&PriorityQueue::do_clean, this)),
-	req_comp_count(0),
-	req_comp_thd(&PriorityQueue::run_req_comp, this)
+	req_comp_count(0)
       {
 	assert(_erase_age >= _idle_age);
+
+	sched_ahead_thd = std::thread(&PriorityQueue::run_sched_ahead, this);
+	req_comp_thd = std::thread(&PriorityQueue::run_req_comp, this);
+	cleaning_job = std::unique_ptr<crimson::RunEvery>(
+	  new crimson::RunEvery(_check_time,
+				std::bind(&PriorityQueue::do_clean, this)));
       }
 
 
