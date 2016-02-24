@@ -448,7 +448,10 @@ namespace crimson {
 
 
       void request_completed() {
-	++req_comp_count;
+	{
+	  std::lock_guard<std::mutex> l(req_comp_mtx);
+	  ++req_comp_count;
+	}
 	req_comp_cv.notify_one();
 #if 1
 	std::cout << "in request_completed" << std::endl;
@@ -666,8 +669,10 @@ namespace crimson {
 
 	while (true) {
 	  while (!finishing && 0 == req_comp_count.load()) {
+#if 1
 	    std::cout << "waiting:" << finishing <<
 	      " & req_comp_count:" << req_comp_count.load() << std::endl;
+#endif
 	    req_comp_cv.wait(l);
 #if 1
 	    std::cout << "done waiting:" << finishing <<
