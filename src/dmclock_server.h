@@ -291,7 +291,6 @@ namespace crimson {
       // for handling timed scheduling
       std::mutex  sched_ahead_mtx;
       std::condition_variable sched_ahead_cv;
-      std::thread sched_ahead_thd;
       Time sched_ahead_when = TimeZero;
 
       // every request creates a tick
@@ -302,18 +301,24 @@ namespace crimson {
       size_t prop_sched_count = 0;
       size_t limit_break_sched_count = 0;
 
-      std::unique_ptr<RunEvery> cleaning_job;
-      Duration              idle_age;
-      Duration              erase_age;
-      Duration              check_time;
-      std::deque<MarkPoint> clean_mark_points;
-
       std::atomic_long        req_comp_count;
       std::mutex              req_comp_mtx;
       std::condition_variable req_comp_cv;
-      std::thread             req_comp_thd;
+
+      Duration                  idle_age;
+      Duration                  erase_age;
+      Duration                  check_time;
+      std::deque<MarkPoint>     clean_mark_points;
+
+      // NB: All threads declared at end, so they're destructed firs!
+
+      std::thread               sched_ahead_thd;
+      std::thread               req_comp_thd;
+      std::unique_ptr<RunEvery> cleaning_job;
+
 
     public:
+
 
       PriorityQueue(ClientInfoFunc _client_info_f,
 		    CanHandleRequestFunc _can_handle_f,
@@ -638,6 +643,8 @@ namespace crimson {
 	      sched_ahead_cv.wait_for(l, microseconds);
 	    }
 	    sched_ahead_when = TimeZero;
+	    if (finishing) return;
+
 	    l.unlock();
 	    if (!finishing) {
 	      DataGuard g(data_mtx);
