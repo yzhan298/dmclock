@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
   // server params
 
   const uint server_count = 100;
-  const uint server_iops = 40;
+  const uint server_iops = 50;
   const uint server_threads = 1;
   const bool server_soft_limit = false;
 
@@ -65,10 +65,10 @@ int main(int argc, char* argv[]) {
 
   // client class A
 
-  const uint client_iops_goal = 50;
+  const uint client_iops_goal = 1000;
   const uint client_outstanding_ops = 40;
-  const double client_reservation = 20.0;
-  const double client_limit = 60.0;
+  const double client_reservation = 50.0;
+  const double client_limit = 200.0;
   const double client_weight = 1.0;
 
   dmc::ClientInfo client_info =
@@ -81,8 +81,8 @@ int main(int argc, char* argv[]) {
   
   const uint client_count_b = 1;
   const uint client_iops_goal_b = 100;
-  const double client_reservation_b = 80.0;
-  const double client_limit_b = 100.0;
+  const double client_reservation_b = 100.0;
+  const double client_limit_b = 200.0;
   const double client_weight_b = 1.0;
   const std::chrono::seconds client_wait_b(10);
 
