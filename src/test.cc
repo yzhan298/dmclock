@@ -60,23 +60,47 @@ int main(int argc, char* argv[]) {
 
   // client params
 
-  const uint client_total_ops = 1000;
   const uint client_count = 100;
-  const uint client_wait_count = 1;
+  const uint client_total_ops = 1000;
+
+  // client class A
+
   const uint client_iops_goal = 50;
-  const uint client_outstanding_ops = 100;
+  const uint client_outstanding_ops = 40;
   const double client_reservation = 20.0;
   const double client_limit = 60.0;
   const double client_weight = 1.0;
-  const std::chrono::seconds client_wait(10);
 
   dmc::ClientInfo client_info =
     { client_weight, client_reservation, client_limit };
 
+  static std::vector<CliInst> client_ops =
+      { { req_op, client_total_ops, client_iops_goal, client_outstanding_ops } };
+
+  // client class B
+  
+  const uint client_count_b = 1;
+  const uint client_iops_goal_b = 100;
+  const double client_reservation_b = 20.0;
+  const double client_limit_b = 70.0;
+  const double client_weight_b = 3.0;
+  const std::chrono::seconds client_wait_b(10);
+
+  dmc::ClientInfo client_info_b =
+    { client_weight_b, client_reservation_b, client_limit_b };
+
+  static std::vector<CliInst> client_ops_b =
+      { { wait_op, client_wait_b },
+	{ req_op, client_total_ops, client_iops_goal_b, client_outstanding_ops } };
+
   // construct servers
 
-  auto client_info_f = [&client_info](const ClientId& c) -> dmc::ClientInfo {
-    return client_info;
+  auto client_info_f = [&](const ClientId& c) -> dmc::ClientInfo {
+    if (c < (client_count - client_count_b)) {
+      return client_info;
+    } else {
+      return client_info_b;
+    }
   };
 
   ClientMap clients;
@@ -93,11 +117,10 @@ int main(int argc, char* argv[]) {
   ServerMap servers;
   for (uint i = 0; i < server_count; ++i) {
     server_ids.push_back(i);
-    servers[i] =
-      new TestServer(i,
-		     server_iops, server_threads,
-		     client_info_f, client_response_f,
-		     server_soft_limit);
+    servers[i] = new TestServer(i,
+				server_iops, server_threads,
+				client_info_f, client_response_f,
+				server_soft_limit);
   }
 
   // construct clients
@@ -147,12 +170,6 @@ int main(int argc, char* argv[]) {
   };
 
   for (uint i = 0; i < client_count; ++i) {
-    static std::vector<CliInst> no_wait =
-      { { req_op, client_total_ops, client_iops_goal, client_outstanding_ops } };
-    static std::vector<CliInst> wait =
-      { { wait_op, client_wait },
-	{ req_op, client_total_ops, client_iops_goal, client_outstanding_ops } };
-
     SelectFunc server_select_f =
 #if 0
       std::bind(server_alternate_f, _1, i)
@@ -169,7 +186,7 @@ int main(int argc, char* argv[]) {
       new TestClient(i,
 		     server_post_f,
 		     server_select_f,
-		     i < (client_count - client_wait_count) ? no_wait : wait
+		     i < (client_count - client_count_b) ? client_ops : client_ops_b
 	);
   } // for
 
@@ -227,11 +244,12 @@ int main(int argc, char* argv[]) {
   const int data_prec = 2;
 
   auto client_disp_filter = [=] (ClientId i) -> bool {
-    return i < 3 || i >= (client_count - 3);
+    return i == 0 || i == 1 || i == 49 || i == 50 || i == 98 || i == 99;
   };
 
   auto server_disp_filter = [=] (ServerId i) -> bool {
-    return i < 3 || i >= (server_count - 3);
+    return i == 0 || i == 1 || i == 49 || i == 50 || i == 98 || i == 99;
+    // return i < 3 || i >= (server_count - 3);
   };
 
   std::cout << "==== Client Data ====" << std::endl;
