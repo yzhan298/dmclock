@@ -81,9 +81,9 @@ int main(int argc, char* argv[]) {
   
   const uint client_count_b = 1;
   const uint client_iops_goal_b = 100;
-  const double client_reservation_b = 20.0;
-  const double client_limit_b = 70.0;
-  const double client_weight_b = 3.0;
+  const double client_reservation_b = 80.0;
+  const double client_limit_b = 100.0;
+  const double client_weight_b = 1.0;
   const std::chrono::seconds client_wait_b(10);
 
   dmc::ClientInfo client_info_b =
