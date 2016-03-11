@@ -7,6 +7,7 @@
 
 #define DEBUGGER
 #define RESQ_SNAPSHOT 1
+#define RHO_WATCH 1
 
 
 #pragma once
@@ -538,27 +539,61 @@ namespace crimson {
 	  }
 	  client_it->second.idle = false;
 	}
-#if 1
+#if RHO_WATCH
 	{
 	  static bool start = false;
+
 	  static uint rho_99_count = 0;
 	  static uint rho_99_total = 0;
+
 	  static uint rho_98_count = 0;
 	  static uint rho_98_total = 0;
-	  if (99 == request->server) {
+
+#if RHO_MIN_MAX
+	  static uint rho_99_min = 1000;
+	  static uint rho_99_max = 0;
+	  static uint rho_98_min = 1000;
+	  static uint rho_98_max = 0;
+#endif
+
+	  if (3 == request->server) {
 	    if (99 == client_id && !start) start = true;
 
 	    if (start) {
 	      if (99 == client_id) {
 		++rho_99_count;
 		rho_99_total += req_params.rho;
+#if RHO_MIN_MAX
+		if (req_params.rho < rho_99_min) {
+		  rho_99_min = req_params.rho;
+		}
+		if (req_params.rho > rho_99_max) {
+		  rho_99_max = req_params.rho;
+		}
+#endif
 		std::cout << "avg 99: " <<
-		  double(rho_99_total) / rho_99_count << std::endl;
+		  double(rho_99_total) / rho_99_count <<
+#if RHO_MIN_MAX
+		  " " << rho_99_min << "-" << rho_99_max <<
+#endif
+		  std::endl;
 	      } else if (98 == client_id) {
 		++rho_98_count;
 		rho_98_total += req_params.rho;
+#if RHO_MIN_MAX
+		if (req_params.rho < rho_98_min) {
+		  rho_98_min = req_params.rho;
+		}
+		if (req_params.rho > rho_98_max) {
+		  rho_98_max = req_params.rho;
+		}
+#endif
 		std::cout << "                 avg 98: " <<
-		  double(rho_98_total) / rho_98_count << std::endl;
+		  double(rho_98_total) / rho_98_count <<
+#if RHO_MIN_MAX
+		  " " << rho_99_min << "-" << rho_99_max <<
+#endif
+		  std::endl;
 	      }
 	    }
 	  }
