@@ -61,11 +61,11 @@ int main(int argc, char* argv[]) {
   // client params
 
   const uint client_count = 100;
-  const uint client_total_ops = 1000;
+  const uint client_total_ops = 2000;
 
   // client class A
 
-  const uint client_iops_goal = 1000;
+  const uint client_iops_goal = 100;
   const uint client_outstanding_ops = 40;
   const double client_reservation = 50.0;
   const double client_limit = 200.0;

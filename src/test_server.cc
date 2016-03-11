@@ -56,6 +56,15 @@ TestServer::~TestServer() {
   }
 
   delete[] threads;
+
+#if SERVER_CHECK
+  if (srv_filt(id)) {
+    std::cout << "data for server " << id << std::endl;
+    for (const auto& c : client_counter) {
+      std::cout << c.first << ": " << c.second << std::endl;
+    }
+  }
+#endif
 }
 
 
@@ -77,7 +86,7 @@ void TestServer::run(std::chrono::milliseconds check_period) {
 #if INFO > 3
       std::cout << "start req " << client << std::endl;
 #endif
-      
+
       // simulation operation by sleeping; then call function to
       // notify server of completion
       std::this_thread::sleep_for(op_time);
@@ -86,6 +95,12 @@ void TestServer::run(std::chrono::milliseconds check_period) {
       sendResponse(client, resp, dmc::RespParams<ServerId>(id, phase));
 
       priority_queue.request_completed();
+
+#if SERVER_CHECK
+      if (srv_filt(id)) {
+	client_counter[client]++;
+      }
+#endif
 
 #if INFO > 3
 	std::cout << "end req " << client << std::endl;

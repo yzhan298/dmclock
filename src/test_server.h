@@ -73,6 +73,15 @@ protected:
   uint32_t reservation_counter = 0;
   uint32_t proportion_counter = 0;
 
+#if SERVER_CHECK
+  std::map<ClientId,uint32_t> client_counter;
+
+  bool srv_filt(ServerId id) {
+    return id == 99 || id == 3;
+  }
+#endif
+
+
 public:
 
   TestServer(ServerId _id,
