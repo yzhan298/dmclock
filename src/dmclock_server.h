@@ -538,6 +538,32 @@ namespace crimson {
 	  }
 	  client_it->second.idle = false;
 	}
+#if 1
+	{
+	  static bool start = false;
+	  static uint rho_99_count = 0;
+	  static uint rho_99_total = 0;
+	  static uint rho_98_count = 0;
+	  static uint rho_98_total = 0;
+	  if (99 == request->server) {
+	    if (99 == client_id && !start) start = true;
+
+	    if (start) {
+	      if (99 == client_id) {
+		++rho_99_count;
+		rho_99_total += req_params.rho;
+		std::cout << "avg 99: " <<
+		  double(rho_99_total) / rho_99_count << std::endl;
+	      } else if (98 == client_id) {
+		++rho_98_count;
+		rho_98_total += req_params.rho;
+		std::cout << "                 avg 98: " <<
+		  double(rho_98_total) / rho_98_count << std::endl;
+	      }
+	    }
+	  }
+	}
+#endif
 
 	EntryRef entry =
 	  std::make_shared<Entry>(client_id,
