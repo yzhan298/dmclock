@@ -6,6 +6,7 @@
 
 
 #define DEBUGGER
+#define RESQ_SNAPSHOT 1
 
 
 #pragma once
@@ -792,6 +793,21 @@ namespace crimson {
 	  }
 	}
 #endif
+
+#if RESQ_SNAPSHOT
+	{
+	  if (!reserv_q.empty() && reserv_q.top()->tag.reservation <= now) {
+	    auto& top = reserv_q.top();
+	    if (top->request->server == 99 &&
+		top->client == 99 &&
+		top->request->epoch >= 1000 &&
+		top->request->epoch < 1008) {
+	      display_queues(true, false, false, false);
+	    }
+	  }
+	}
+#endif
+
 
 	if (!reserv_q.empty() && reserv_q.top()->tag.reservation <= now) {
 	  result.status = NextReqStat::returning;
