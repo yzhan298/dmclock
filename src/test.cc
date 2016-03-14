@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
     { client_weight, client_reservation, client_limit };
 
   static std::vector<CliInst> client_ops =
-      { { req_op, client_total_ops, client_iops_goal, client_outstanding_ops } };
+    { { req_op, client_total_ops, client_iops_goal, client_outstanding_ops } };
 
   // client class B
 
@@ -90,8 +90,8 @@ int main(int argc, char* argv[]) {
     { client_weight_b, client_reservation_b, client_limit_b };
 
   static std::vector<CliInst> client_ops_b =
-      { { wait_op, client_wait_b },
-	{ req_op, client_total_ops, client_iops_goal_b, client_outstanding_ops } };
+    { { wait_op, client_wait_b },
+      { req_op, client_total_ops, client_iops_goal_b, client_outstanding_ops } };
 
   // construct servers
 
