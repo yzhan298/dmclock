@@ -10,7 +10,7 @@
 // #define RESQ_SNAPSHOT 1
 // #define RHO_WATCH 1
 #define RECORD_TAG_MAX 1
-#define RECORD_TAG_DETAIL 1
+// #define RECORD_TAG_DETAIL 1
 
 #define WATCH_SERVER 99
 #define WATCH_CLIENT 99
@@ -119,6 +119,8 @@ namespace crimson {
 
     private:
 
+#define ALT_MAX_CALC 0
+
       static double tag_calc(const Time& time,
 			     double prev,
 			     double increment,
@@ -129,7 +131,15 @@ namespace crimson {
 	if (0.0 == increment) {
 	  return 0.0;
 	} else {
+#if ALT_MAX_CALC
+	  if (time > prev + increment + increment) {
+	    return time;
+	  } else {
+	    return prev + increment;
+	  }
+#else
 	  return std::max(time, prev + increment);
+#endif
 	}
       }
 
