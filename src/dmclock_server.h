@@ -9,7 +9,8 @@
 #define DEBUGGER
 // #define RESQ_SNAPSHOT 1
 // #define RHO_WATCH 1
-// #define RECORD_TAG_MAX 1
+#define RECORD_TAG_MAX 1
+#define RECORD_TAG_DETAIL 1
 
 #define WATCH_SERVER 99
 #define WATCH_CLIENT 99
@@ -486,12 +487,14 @@ namespace crimson {
 
 #if RECORD_TAG_MAX
 	if (time_tag || incremental_tag) {
+#if RECORD_TAG_DETAIL
 	  for (uint i = 0; i < times.size(); ++i) {
 	    std::cout << format_time(times[i]) << " - " <<
 	      format_time(increments[i]) << " = " <<
 	      std::setprecision(4) <<
 	      times[i] - increments[i] << std::endl;
 	  }
+#endif
 
 	  std::cout << "For server " << WATCH_SERVER <<
 	    " and client " << WATCH_CLIENT <<
@@ -646,11 +649,13 @@ namespace crimson {
 	{
 	  if (WATCH_CLIENT == client_id &&
 	      WATCH_SERVER == entry->request->server) {
-
 	    auto incremental = client_it->second.get_req_tag().reservation +
 	      client_it->second.info.reservation_inv * req_params.rho;
+
+#if RECORD_TAG_DETAIL
 	    times.push_back(time);
 	    increments.push_back(incremental);
+#endif
 
 	    if (entry->tag.reservation == time) {
 	      ++time_tag;
