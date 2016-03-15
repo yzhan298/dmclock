@@ -576,55 +576,56 @@ namespace crimson {
 	{
 	  static bool start = false;
 
-	  static uint rho_99_count = 0;
-	  static uint rho_99_total = 0;
+	  static uint rho_a_count = 0;
+	  static uint rho_a_total = 0;
 
-	  static uint rho_98_count = 0;
-	  static uint rho_98_total = 0;
+	  static uint rho_b_count = 0;
+	  static uint rho_b_total = 0;
 
 #if RHO_MIN_MAX
-	  static uint rho_99_min = 1000;
-	  static uint rho_99_max = 0;
-	  static uint rho_98_min = 1000;
-	  static uint rho_98_max = 0;
+	  static uint rho_a_min = 1000;
+	  static uint rho_a_max = 0;
+	  static uint rho_b_min = 1000;
+	  static uint rho_b_max = 0;
 #endif
 
-	  if (3 == request->server) {
-	    if (99 == client_id && !start) start = true;
+	  if (WATCH_SERVER == request->server) {
+	    if (WATCH_CLIENT == client_id && !start) start = true;
 
 	    if (start) {
-	      if (99 == client_id) {
-		++rho_99_count;
-		rho_99_total += req_params.rho;
+	      if (WATCH_CLIENT == client_id) {
+		++rho_a_count;
+		rho_a_total += req_params.rho;
 #if RHO_MIN_MAX
-		if (req_params.rho < rho_99_min) {
-		  rho_99_min = req_params.rho;
+		if (req_params.rho < rho_a_min) {
+		  rho_a_min = req_params.rho;
 		}
-		if (req_params.rho > rho_99_max) {
-		  rho_99_max = req_params.rho;
+		if (req_params.rho > rho_a_max) {
+		  rho_a_max = req_params.rho;
 		}
 #endif
-		std::cout << "avg 99: " <<
-		  double(rho_99_total) / rho_99_count <<
+		std::cout << "avg " << WATCH CLIENT << ": " <<
+		  double(rho_a_total) / rho_a_count <<
 #if RHO_MIN_MAX
-		  " " << rho_99_min << "-" << rho_99_max <<
+		  " " << rho_a_min << "-" << rho_a_max <<
 #endif
 		  std::endl;
-	      } else if (98 == client_id) {
-		++rho_98_count;
-		rho_98_total += req_params.rho;
+	      } else if (WATCH_CLIENT - 1 == client_id) {
+		++rho_b_count;
+		rho_b_total += req_params.rho;
 #if RHO_MIN_MAX
-		if (req_params.rho < rho_98_min) {
-		  rho_98_min = req_params.rho;
+		if (req_params.rho < rho_b_min) {
+		  rho_b_min = req_params.rho;
 		}
-		if (req_params.rho > rho_98_max) {
-		  rho_98_max = req_params.rho;
+		if (req_params.rho > rho_b_max) {
+		  rho_b_max = req_params.rho;
 		}
 #endif
-		std::cout << "                 avg 98: " <<
-		  double(rho_98_total) / rho_98_count <<
+		std::cout << "                 avg " << WATCH CLIENT - 1 <<
+		  ": " <<
+		  double(rho_b_total) / rho_b_count <<
 #if RHO_MIN_MAX
-		  " " << rho_99_min << "-" << rho_99_max <<
+		  " " << rho_a_min << "-" << rho_a_max <<
 #endif
 		  std::endl;
 	      }
@@ -913,8 +914,8 @@ namespace crimson {
 	{
 	  if (!reserv_q.empty() && reserv_q.top()->tag.reservation <= now) {
 	    auto& top = reserv_q.top();
-	    if (top->request->server == 99 &&
-		top->client == 99 &&
+	    if (top->request->server == WATCH_SERVER &&
+		top->client == WATCH_CLIENT &&
 		top->request->epoch >= 1000 &&
 		top->request->epoch < 1008) {
 	      display_queues(true, false, false, false);

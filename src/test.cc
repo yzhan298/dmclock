@@ -256,12 +256,11 @@ int main(int argc, char* argv[]) {
   const int data_prec = 2;
 
   auto client_disp_filter = [=] (ClientId i) -> bool {
-    return i == 0 || i == 1 || i == 49 || i == 50 || i == 98 || i == 99;
+    return i <= 1 || i >= client_count - 2 || (i >> 1) == (client_count >> 2);
   };
 
   auto server_disp_filter = [=] (ServerId i) -> bool {
-    return i == 0 || i == 1 || i == 49 || i == 50 || i == 98 || i == 99;
-    // return i < 3 || i >= (server_count - 3);
+    return i <= 1 || i >= server_count - 2 || (i >> 1) == (server_count >> 2);
   };
 
   std::cout << "==== Client Data ====" << std::endl;
