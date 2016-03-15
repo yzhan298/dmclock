@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
   // client class A
 
   const uint client_iops_goal = 100;
-  const uint client_outstanding_ops = 128;
+  const uint client_outstanding_ops = 10000;
   const double client_reservation = 50.0;
   const double client_limit = 200.0;
   const double client_weight = 1.0;
