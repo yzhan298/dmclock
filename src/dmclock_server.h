@@ -7,8 +7,12 @@
 
 
 #define DEBUGGER
-#define RESQ_SNAPSHOT 1
-#define RHO_WATCH 1
+// #define RESQ_SNAPSHOT 1
+// #define RHO_WATCH 1
+#define RECORD_TAG_MAX 1
+
+#define WATCH_SERVER 6
+#define WATCH_CLIENT 0
 
 
 #pragma once
@@ -350,6 +354,11 @@ namespace crimson {
       Duration                  check_time;
       std::deque<MarkPoint>     clean_mark_points;
 
+#if RECORD_TAG_MAX
+      uint32_t time_tag = 0;
+      uint32_t incremental_tag = 0;
+#endif
+
       // NB: All threads declared at end, so they're destructed firs!
 
       std::thread sched_ahead_thd;
@@ -467,6 +476,15 @@ namespace crimson {
 	  sched_ahead_cv.notify_one();
 	  sched_ahead_thd.join();
 	}
+
+#if RECORD_TAG_MAX
+	if (time_tag || incremental_tag) {
+	  std::cout << "For server " << WATCH_SERVER <<
+	    " and client " << WATCH_CLIENT <<
+	    " reservation time tags is " << time_tag <<
+	    " and incremental is " << incremental_tag << std::endl;
+	}
+#endif
       }
 
 
@@ -599,7 +617,7 @@ namespace crimson {
 	    }
 	  }
 	}
-#endif
+#endif // RHO_WATCH
 
 	EntryRef entry =
 	  std::make_shared<Entry>(client_id,
@@ -608,6 +626,20 @@ namespace crimson {
 					     req_params,
 					     time),
 				  std::move(request));
+
+#if RECORD_TAG_MAX
+	if (WATCH_CLIENT == client_id && WATCH_SERVER == entry->request->server) {
+	  if (entry->tag.reservation == time) {
+	    ++time_tag;
+	  } else {
+	    assert(client_it->second.get_req_tag().reservation +
+		   client_it->second.info.reservation_inv * req_params.rho ==
+		   entry->tag.reservation);
+	    ++incremental_tag;
+	  }
+	}
+#endif
+
 
 	// copy tag to previous tag for client
 	client_it->second.update_req_tag(entry->tag, tick);
