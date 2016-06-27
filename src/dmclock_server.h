@@ -237,6 +237,9 @@ namespace crimson {
 	c::IndIntruHeapData   reserv_heap_data;
 	c::IndIntruHeapData   lim_heap_data;
 	c::IndIntruHeapData   ready_heap_data;
+
+	// index in look_up vector
+	c::IndIntruHeapData   lookup_vector_data;
 #if USE_PROP_HEAP
 	c::IndIntruHeapData   prop_heap_data;
 #endif
@@ -379,17 +382,34 @@ namespace crimson {
 	return (resv_heap.empty() || ! resv_heap.top().has_request());
       }
 
+      bool empty2() const {
+	DataGuard g(data_mtx);
+	return (lookup_vector.empty() || ! lookup_vector.top().has_request());
+      }
 
       size_t client_count() const {
 	DataGuard g(data_mtx);
 	return resv_heap.size();
       }
 
+      size_t client_count2() const {
+	DataGuard g(data_mtx);
+	return lookup_vector.size();
+      }
 
       size_t request_count() const {
 	DataGuard g(data_mtx);
 	size_t total = 0;
 	for (auto i = resv_heap.cbegin(); i != resv_heap.cend(); ++i) {
+	  total += i->request_count();
+	}
+	return total;
+      }
+
+      size_t request_count2() const {
+	DataGuard g(data_mtx);
+	size_t total = 0;
+	for (auto i = lookup_vector.cbegin(); i != lookup_vector.cend(); ++i) {
 	  total += i->request_count();
 	}
 	return total;
@@ -482,7 +502,7 @@ namespace crimson {
       //
       // ready_opt determines how the ready flag influences the sort
       //
-      // use_prop_delta determines whether the proportial delta is
+      // use_prop_delta determines whether the proportional delta is
       // added in for comparison
       template<double RequestTag::*tag_field,
 	       ReadyOption ready_opt,
@@ -526,7 +546,7 @@ namespace crimson {
       mutable std::mutex data_mtx;
       using DataGuard = std::lock_guard<decltype(data_mtx)>;
 
-      // stable mappiing between client ids and client queues
+      // stable mapping between client ids and client queues
       std::map<C,ClientRecRef> client_map;
 
 
@@ -557,7 +577,15 @@ namespace crimson {
 				    ReadyOption::raises,
 				    true>> ready_heap;
 
-      // if all reservations are met and all other requestes are under
+      // for linear lookup
+      c::IndIntruVector<ClientRecRef,
+		      ClientRec,
+		      &ClientRec::lookup_vector_data,
+		      ClientCompare<&RequestTag::proportion,
+				    ReadyOption::ignore,
+				    true>> lookup_vector;
+
+      // if all reservations are met and all other requests are under
       // limit, this will allow the request next in terms of
       // proportion to still get issued
       bool             allow_limit_break;
@@ -650,7 +678,7 @@ namespace crimson {
 	  // proportion tag -- O(1) -- or the client with the lowest
 	  // previous proportion tag -- O(n) where n = # clients.
 	  //
-	  // So we don't have to maintain a propotional queue that
+	  // So we don't have to maintain a proportional queue that
 	  // keeps the minimum on proportional tag alone (we're
 	  // instead using a ready queue), we'll have to check each
 	  // client.

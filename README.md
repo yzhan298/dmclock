@@ -35,6 +35,10 @@ and *ssched_sim* -- which incorporate, respectively, the dmclock
 priority queue or a very simple scheduler for comparison. Other
 priority queue implementations could be added in the future.
 
+#### Interpreting simulation output
+
+Columns are clients in the first part of output and servers in the lower part, Values are ops per second. Rows are time-windows in which the ops/second are measured -- earlier up top, later as you go lower.
+
 ## Using dmclock
 
 To be written....
