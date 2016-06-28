@@ -43,5 +43,5 @@ function(dmclock_make_tests)
 endfunction()
 
 dmclock_make_tests(dmclock_server dmclock_server_pull dmclock_client test_client)
-
+#dmclock_make_tests(dmclock_client)
 add_dependencies(dmclock-check dmclock-tests)

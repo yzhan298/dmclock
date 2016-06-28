@@ -28,13 +28,13 @@ namespace crimson {
    *   and that must allow dereferencing (via operator*) to yield a
    *   T&.
    *
-   * C is a functor when given two T&'s will return true if the first
+   * C{1, 2, 3} are functors when given two T&'s will return true if the first
    *   must precede the second.
    *
    * index_info is a data member pointer as to where the heap data in T
    * is stored.
    */
-  template<typename I, typename T, IndIntruVectorData T::*index_info, typename C>
+  template<typename I, typename T, IndIntruVectorData T::*index_info, typename C1, typename C2, typename C3>
   class IndIntruVector {
 
     static_assert(
@@ -43,17 +43,26 @@ namespace crimson {
 
     static_assert(
       std::is_same<bool,
-      typename std::result_of<C(const T&,const T&)>::type>::value,
-      "class C must define operator() to take two const T& and return a bool");
+      typename std::result_of<C1(const T&,const T&)>::type>::value,
+      "class C1 must define operator() to take two const T& and return a bool");
 
+    static_assert(
+      std::is_same<bool,
+      typename std::result_of<C2(const T&,const T&)>::type>::value,
+      "class C2 must define operator() to take two const T& and return a bool");
+
+    static_assert(
+      std::is_same<bool,
+      typename std::result_of<C3(const T&,const T&)>::type>::value,
+      "class C3 must define operator() to take two const T& and return a bool");
 
     class Iterator {
-      friend IndIntruVector<I, T, index_info, C>;
+      friend IndIntruVector<I, T, index_info, C1, C2, C3>;
 
-      IndIntruVector<I, T, index_info, C>& vect;
+      IndIntruVector<I, T, index_info, C1, C2, C3>& vect;
       size_t                            index;
 
-      Iterator(IndIntruVector<I, T, index_info, C>& _vect, size_t _index) :
+      Iterator(IndIntruVector<I, T, index_info, C1, C2, C3>& _vect, size_t _index) :
 	vect(_vect),
 	index(_index)
       {
@@ -120,12 +129,12 @@ namespace crimson {
 
 
     class ConstIterator {
-      friend IndIntruVector<I, T, index_info, C>;
+      friend IndIntruVector<I, T, index_info, C1, C2, C3>;
 
-      const IndIntruVector<I, T, index_info, C>& vect;
+      const IndIntruVector<I, T, index_info, C1, C2, C3>& vect;
       size_t                                  index;
 
-      ConstIterator(const IndIntruVector<I, T, index_info, C>& _vect, size_t _index) :
+      ConstIterator(const IndIntruVector<I, T, index_info, C1, C2, C3>& _vect, size_t _index) :
 	vect(_vect),
 	index(_index)
       {
@@ -189,18 +198,30 @@ namespace crimson {
 
     std::vector<I> data;
     index_t        count;
-    C              comparator;
+    index_t        fake_top_resrv;
+    index_t        fake_top_ready;
+    index_t        fake_top_limit;
+
+    C1             comparator_resrv;
+    C2             comparator_ready;
+    C3             comparator_limit;
+
 
   public:
-
     IndIntruVector() :
-      count(0)
+      count(0),
+      fake_top_resrv(0),
+      fake_top_ready(0),
+      fake_top_limit(0)
     {
       // empty
     }
 
-    IndIntruVector(const IndIntruVector<I,T,index_info,C>& other) :
-      count(other.count)
+    IndIntruVector(const IndIntruVector<I,T,index_info,C1, C2, C3>& other) :
+      count(other.count),
+      fake_top_resrv(other.fake_top_resrv),
+      fake_top_ready(other.fake_top_ready),
+      fake_top_limit(other.fake_top_limit)
     {
       for (uint i = 0; i < other.count; ++i) {
 	data.push_back(other.data[i]);
@@ -211,19 +232,33 @@ namespace crimson {
 
     size_t size() const { return count; }
 
-    T& top() { return *data[0]; }
-
-    const T& top() const { return *data[0]; }
-
+    // tops
+    T& top() { return *data[0];}
+    const T& top() const { return *data[0];}
     I& top_ind() { return data[0]; }
-
     const I& top_ind() const { return data[0]; }
+
+    T& top_reservation() { return *data[fake_top_resrv];}
+    const T& top_reservation() const { return *data[fake_top_resrv];}
+    I& top_ind_reservation() { return data[fake_top_resrv]; }
+    const I& top_ind_reservation() const { return data[fake_top_resrv]; }
+
+    T& top_ready() { return *data[fake_top_ready];}
+    const T& top_ready() const { return *data[fake_top_ready];}
+    I& top_ind_ready() { return data[fake_top_ready]; }
+    const I& top_ind_ready() const { return data[fake_top_ready]; }
+
+    T& top_limit() { return *data[fake_top_limit];}
+    const T& top_limit() const { return *data[fake_top_limit];}
+    I& top_ind_limit() { return data[fake_top_limit]; }
+    const I& top_ind_limit() const { return data[fake_top_limit]; }
+
 
     void push(I&& item) {
       index_t i = count++;
       intru_data_of(item) = i;
       data.emplace_back(std::move(item));
-      sift_up(i);
+      adjust();
     }
 
     void push(const I& item) {
@@ -231,9 +266,11 @@ namespace crimson {
       push(std::move(copy));
     }
 
-    void pop() {
-      remove(0);
-    }
+    // pops
+    void pop() { remove(0); }
+    void pop_reservation() { remove(fake_top_resrv); }
+    void pop_ready() { remove(fake_top_ready); }
+    void pop_limit() { remove(fake_top_limit); }
 
     void remove(Iterator& i) {
       remove(i.index);
@@ -283,20 +320,6 @@ namespace crimson {
       return end();
     }
 
-    // being called
-    void promote(T& item) {
-      sift_up(item.*index_info);
-    }
-
-    // being called
-    void demote(T& item) {
-      sift_down(item.*index_info);
-    }
-
-    // being called
-    void adjust(T& item) {
-      sift(item.*index_info);
-    }
 
     Iterator begin() {
       return Iterator(*this, 0);
@@ -321,6 +344,7 @@ namespace crimson {
 	++i;
 	while (i != h.data.cend()) {
 	  out << ", " << **i;
+	  ++i;
 	}
       }
       return out;
@@ -328,26 +352,54 @@ namespace crimson {
 
     // can only be called if I is copyable
     std::ostream&
-    display_sorted(std::ostream& out,
+    display_sorted(std::ostream& out, std::string which = "",
 		   std::function<bool(const T&)> filter = all_filter) const {
       static_assert(std::is_copy_constructible<I>::value,
 		    "cannot call display_sorted when class I is not copy"
 		    " constructible");
 
-      IndIntruVector<I,T,index_info,C> copy = *this;
-
+      IndIntruVector<I,T,index_info,C1, C2, C3> copy = *this;
+      T *top;
       bool first = true;
       while(!copy.empty()) {
-	const T& top = copy.top();
-	if (filter(top)) {
+	if (which == "reservation"){
+	  top = copy.top_ind_reservation().get();
+	} else if (which == "ready"){
+	  top = copy.top_ind_ready().get();
+	} else if (which == "limit"){
+	  top = copy.top_ind_limit().get();
+	} else{
+	  top = copy.top_ind().get();
+	}
+
+	if (filter(*top)) {
 	  if (!first) {
 	    out << ", ";
 	  }
-	  out << copy.top();
+	  if (which == "reservation"){
+	    out << copy.top_reservation();
+	  } else if (which == "ready"){
+	    out << copy.top_ready();
+	  } else if (which == "limit"){
+	    out << copy.top_limit();
+	  } else{
+	    out << copy.top();
+	  }
+
 	  first = false;
 	}
-	copy.pop();
+
+	if (which == "reservation"){
+	  copy.pop_reservation();
+	} else if (which == "ready"){
+	  copy.pop_ready();
+	} else if (which == "limit"){
+	  copy.pop_limit();
+	} else{
+	  copy.pop();
+	}
       }
+      out << std::endl;
 
       return out;
     }
@@ -363,82 +415,32 @@ namespace crimson {
       std::swap(data[i], data[--count]);
       intru_data_of(data[i]) = i;
       data.pop_back();
-      sift_down(i);
+      adjust();
     }
 
     // default value of filter parameter to display_sorted
     static bool all_filter(const T& data) { return true; }
 
-    // when i is negative?
-    static inline index_t parent(index_t i) {
-      assert(0 != i);
-      return (i - 1) / 2;
+
+    // use native loop over std::min_element to update 3 mins
+    // in one sweep
+    void adjust() {
+      fake_top_resrv = fake_top_ready = fake_top_limit = 0;
+
+      for (index_t i = 1 ; i < count; i++){
+	if (comparator_resrv(*data[i], *data[fake_top_resrv])){
+	  fake_top_resrv = i;
+	}
+
+	if (comparator_ready(*data[i], *data[fake_top_ready])){
+	  fake_top_ready = i;
+	}
+
+	if (comparator_limit(*data[i], *data[fake_top_limit])){
+	  fake_top_limit = i;
+	}
+      }
     }
 
-    static inline index_t lhs(index_t i) { return 2*i + 1; }
-
-    static inline index_t rhs(index_t i) { return 2*i + 2; }
-
-    void sift_up(index_t i) {
-      while (i > 0) {
-	index_t pi = parent(i);
-	if (!comparator(*data[i], *data[pi])) {
-	  break;
-	}
-
-	std::swap(data[i], data[pi]);
-	intru_data_of(data[i]) = i;
-	intru_data_of(data[pi]) = pi;
-	i = pi;
-      }
-    } // sift_up
-
-    void sift_down(index_t i) {
-      while (i < count) {
-	index_t li = lhs(i);
-	index_t ri = rhs(i);
-
-	if (li < count) {
-	  if (comparator(*data[li], *data[i])) {
-	    if (ri < count && comparator(*data[ri], *data[li])) {
-	      std::swap(data[i], data[ri]);
-	      intru_data_of(data[i]) = i;
-	      intru_data_of(data[ri]) = ri;
-	      i = ri;
-	    } else {
-	      std::swap(data[i], data[li]);
-	      intru_data_of(data[i]) = i;
-	      intru_data_of(data[li]) = li;
-	      i = li;
-	    }
-	  } else if (ri < count && comparator(*data[ri], *data[i])) {
-	    std::swap(data[i], data[ri]);
-	    intru_data_of(data[i]) = i;
-	    intru_data_of(data[ri]) = ri;
-	    i = ri;
-	  } else {
-	    break;
-	  }
-	} else {
-	  break;
-	}
-      }
-    } // sift_down
-
-    void sift(index_t i) {
-      if (i == 0) {
-	// if we're at top, can only go down
-	sift_down(i);
-      } else {
-	index_t pi = parent(i);
-	if (comparator(*data[i], *data[pi])) {
-	  // if we can go up, we will
-	  sift_up(i);
-	} else {
-	  // otherwise we'll try to go down
-	  sift_down(i);
-	}
-      }
-    } // sift
   }; // class LinearLookUp
 } // namespace crimson

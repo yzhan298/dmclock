@@ -384,7 +384,6 @@ namespace crimson {
 #endif
 	  };
 
-
       // this is returned from next_req to tell the caller the situation
       struct NextReq {
 	NextReqType type;
@@ -606,9 +605,15 @@ namespace crimson {
       c::IndIntruVector<ClientRecRef,
 		      ClientRec,
 		      &ClientRec::lookup_vector_data,
-		      ClientCompare<&RequestTag::proportion,
+		      ClientCompare<&RequestTag::reservation,
 				    ReadyOption::ignore,
-				    true>> lookup_vector;
+				    false>,
+		      ClientCompare<&RequestTag::proportion,
+      				    ReadyOption::ignore,
+      				    true>,
+		      ClientCompare<&RequestTag::limit,
+      				    ReadyOption::lowers,
+      				    false>> lookup_vector;
 
       // if all reservations are met and all other requests are under
       // limit, this will allow the request next in terms of
