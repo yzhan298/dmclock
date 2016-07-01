@@ -117,11 +117,11 @@ namespace crimson {
        *
        * 4 seconds : clean does nothing except makes another mark
        *
-       *   5 seconds : when we're secheduled to idle (+2 + 3)
+       *   5 seconds : when we're scheduled to idle (+2 + 3)
        *
        * 6 seconds : clean idles client
        *
-       *   7 seconds : when we're secheduled to erase (+2 + 5)
+       *   7 seconds : when we're scheduled to erase (+2 + 5)
        *
        *     7 seconds : verified client is idle
        *
@@ -132,12 +132,12 @@ namespace crimson {
 
       lock_pq([&] () {
 	  EXPECT_EQ(pq.client_map.size(), 0) << "client map initially has size 0";
-	});
+      });
 
       Request req;
       dmc::ReqParams req_params(1, 1);
       pq.add_request_time(req, client, req_params, dmc::get_time());
-
+//
       std::this_thread::sleep_for(std::chrono::seconds(1));
 
       lock_pq([&] () {
@@ -642,5 +642,6 @@ namespace crimson {
       auto& retn = boost::get<Queue::PullReq::Retn>(pr.data);
       EXPECT_EQ(client1, retn.client);
     }
+
   } // namespace dmclock
 } // namespace crimson
