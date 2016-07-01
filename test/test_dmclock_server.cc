@@ -79,6 +79,51 @@ namespace crimson {
     }
 
 
+    TEST(dmclock_server, test_iiv) {
+      using ClientId = int;
+      using Queue = dmc::PullPriorityQueue<ClientId,Request>;
+      using QueueRef = std::unique_ptr<Queue>;
+
+      ClientId client1 = 17;
+      ClientId client2 = 18;
+
+      double reservation = 10.0;
+      double weight = 1.0;
+
+      dmc::ClientInfo ci1(10, weight, 0.0);
+      dmc::ClientInfo ci2(20, weight, 1.0);
+
+      auto client_info_f = [&] (ClientId c) -> dmc::ClientInfo {
+	if (client1 == c) return ci1;
+	else if (client2 == c) return ci2;
+	else {
+	  ADD_FAILURE() << "got request from neither of two clients";
+	  return ci1; // must return
+	}
+      };
+
+      QueueRef pq(new Queue(client_info_f, false));
+      Request req;
+      ReqParams req_params(1,1);
+
+      auto lock_pq = [&](std::function<void()> code) {
+	test_locked(pq->data_mtx, code);
+      };
+
+      lock_pq([&] () {
+	  EXPECT_FALSE(pq->use_heap) << "use_heap flag should be false for iiv";
+      });
+
+      pq->add_request_time(req, client1, req_params, dmc::get_time());
+      pq->add_request_time(req, client2, req_params, dmc::get_time());
+
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+
+      lock_pq([&] () {
+	  EXPECT_FALSE(pq->use_heap) << "use_heap should still be false";
+	});
+    }
+
     TEST(dmclock_server, client_idle_erase) {
       using ClientId = int;
       using Queue = dmc::PushPriorityQueue<ClientId,Request>;

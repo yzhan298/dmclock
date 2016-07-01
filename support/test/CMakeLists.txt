@@ -10,7 +10,7 @@ set(srcs test_intrusive_heap.cc)
 add_executable(test_intru_heap test_intrusive_heap.cc)
 
 # temporary 
-add_executable(test_intru_vect test_indirect_intrusive_vect_main.cc)
+#add_executable(test_intru_vect test_indirect_intrusive_vect_main.cc)
 
 set(test_srcs test_indirect_intrusive_heap.cc)
 

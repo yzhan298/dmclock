@@ -180,6 +180,7 @@ namespace crimson {
     template<typename C, typename R>
     class PriorityQueueBase {
       FRIEND_TEST(dmclock_server, client_idle_erase);
+      FRIEND_TEST(dmclock_server, test_iiv);
 
     public:
 
@@ -815,7 +816,7 @@ namespace crimson {
 	check_time(std::chrono::duration_cast<Duration>(_check_time)),
 	cutoff_for_iiv(100),
 	cutoff_for_iih(1000),
-	use_heap(true)
+	use_heap(false)
       {
 	assert(_erase_age >= _idle_age);
 	assert(_check_time < _idle_age);
