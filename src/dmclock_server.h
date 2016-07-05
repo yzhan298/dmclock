@@ -33,7 +33,6 @@
 #include <boost/variant.hpp>
 
 #include "indirect_intrusive_heap.h"
-#include "indirect_intrusive_vector.h"
 #include "run_every.h"
 #include "dmclock_util.h"
 #include "dmclock_recs.h"
@@ -372,6 +371,202 @@ namespace crimson {
       using ClientRecRef = std::shared_ptr<ClientRec>;
 
 
+      // Indirect Intrusive Vector Data Structure
+      using IndIntruVectorData = size_t;
+
+      template<typename I, typename T, IndIntruVectorData T::*index_info,
+	template < double RequestTag::*, ReadyOption, bool > class Cmp>
+      class IndIntruVector {
+	friend PriorityQueueBase;
+
+	static_assert(
+	  std::is_same<T,typename std::pointer_traits<I>::element_type>::value,
+	  "class I must resolve to class T by indirection (pointer dereference)");
+
+	Cmp<&RequestTag::reservation,
+	    ReadyOption::ignore,
+	    false >              cmp_resv;
+
+//	static_assert(
+//	  std::is_same< bool,
+//	  typename std::result_of<Cmp(const T&, const T&)>::type >::value,
+//	  "class Cmp must define operator() to take two const T& and return a bool");
+
+	Cmp<&RequestTag::proportion,
+	    ReadyOption::raises,
+	    true >               cmp_ready;
+
+	Cmp<&RequestTag::limit,
+	    ReadyOption::lowers,
+	    false >              cmp_limit;
+
+      protected:
+	using index_t = IndIntruVectorData;
+	std::vector<I>           data;
+	index_t                  count;
+	const index_t            top_default;
+
+      public:
+	index_t                  resv;
+	index_t                  ready;
+	index_t                  limit;
+
+
+	IndIntruVector() :
+	  count(0),
+	  top_default(0),
+	  resv(0),
+	  ready(0),
+	  limit(0)
+	{
+	  // empty
+	}
+
+	IndIntruVector(const IndIntruVector < I, T, index_info , Cmp > &other) :
+	  count(other.count),
+	  top_default(0),
+	  resv(other.resv),
+	  ready(other.ready),
+	  limit(other.limit)
+	{
+	  for (uint i = 0; i < other.count; ++i) {
+	    data.push_back(other.data[i]);
+	  }
+	}
+
+	bool empty() const { return 0 == count; }
+
+	size_t size() const { return count; }
+
+	// slow call, use specialized version
+	T& top(index_t IndIntruVector::*which_top) {
+	  return *data[this->*which_top];
+	}
+
+	// slow call, use specialized version
+	const T& top(index_t IndIntruVector::*which_top) const {
+	  return *data[this->*which_top];
+	}
+
+	T& top_resv() {
+	  return *data[resv];
+	}
+
+	// slow call, use specialized version
+	const T& top_resv() const {
+	  return *data[resv];
+	}
+
+	T& top_ready() {
+	  return *data[ready];
+	}
+
+	// slow call, use specialized version
+	const T& top_ready() const {
+	  return *data[ready];
+	}
+
+	T& top_limit() {
+	  return *data[limit];
+	}
+
+	// specialized tops
+	const T& top_limit() const {
+	  return *data[limit];
+	}
+
+	void push(I&& item) {
+	  index_t i = count++;
+	  index_of(item) = i;
+	  data.emplace_back(std::move(item));
+	  adjust();
+	}
+
+	void push(const I& item) {
+	  I copy(item);
+	  push(std::move(copy));
+	}
+
+	void pop(index_t IndIntruVector::*where) {
+	  remove(this->*where);
+	}
+
+	void pop_resv() {
+	  remove(resv);
+	}
+
+	void pop_ready() {
+	  remove(ready);
+	}
+
+	void pop_limit() {
+	  remove(limit);
+	}
+
+	void pop() {
+	  remove(top_default);
+	}
+	// use native loop to update 3 tops in one sweep
+	void adjust() {
+	  resv = ready = limit = 0;
+
+	  for (index_t i = 1 ; i < count; i++){
+	    if (cmp_resv(*data[i], *data[resv])){
+	      resv = i;
+	    }
+
+	    if (cmp_ready(*data[i], *data[ready])){
+	      ready = i;
+	    }
+
+	    if (cmp_limit(*data[i], *data[limit])){
+	      limit = i;
+	    }
+	  }
+	}
+
+	void remove(const I& item) {
+	  index_t i = (*item).*index_info;
+	  if (i < count) {
+	    remove(i);
+	  }
+	}
+
+	friend std::ostream& operator<<(std::ostream& out, const IndIntruVector& h) {
+	  bool first = true;
+	  for (index_t i = 0 ; i < h.count ; i++){
+	    if(!first){
+	      out << ", ";
+	    }
+	    out << h.data[i] << " (" << i << ") ";
+	    first = false;
+	  }
+	  return out;
+	}
+
+      protected:
+
+	static index_t& index_of(I& item) {
+	  return (*item).*index_info;
+	}
+
+	void remove(index_t i) {
+	  std::swap(data[i], data[--count]);
+	  index_of(data[i]) = i;
+	  data.pop_back();
+	  adjust();
+	}
+
+      }; // class IntruIndirectVector
+
+      // IndIntruVector based ClientRec data-structure
+      using iiv = IndIntruVector<ClientRecRef,
+				 ClientRec,
+				 &ClientRec::lookup_vector_data,
+				 ClientCompare>;
+      iiv                        cl_vec;
+
+
     public:
       // when we try to get the next request, we'll be in one of three
       // situations -- we'll have one to return, have one that can
@@ -426,8 +621,8 @@ namespace crimson {
 	    total += i->request_count();
 	  }
 	} else {
-	  for ( auto i = cl_vec.cbegin() ; i != cl_vec.cend() ; ++i) {
-	    total += i->request_count();
+	  for ( auto i = 0 ; i < cl_vec.size() ; i++) {
+	    total += cl_vec.data[i]->request_count();
 	  }
 	}
 	return total;
@@ -607,18 +802,6 @@ namespace crimson {
 				    true>> ready_heap;
 
 
-      c::IndIntruVector<ClientRecRef,
-			ClientRec,
-			&ClientRec::lookup_vector_data,
-			ClientCompare<&RequestTag::reservation,
-				    ReadyOption::ignore,
-				    false>,
-			ClientCompare<&RequestTag::limit,
-				    ReadyOption::lowers,
-				    false>,
-			ClientCompare<&RequestTag::proportion,
-				    ReadyOption::raises,
-				    true> > cl_vec;
 
       // if all reservations are met and all other requests are under
       // limit, this will allow the request next in terms of

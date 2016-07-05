@@ -80,55 +80,30 @@ namespace crimson {
 
 
     TEST(dmclock_server, test_iiv) {
-      struct MyReq {
-	int id;
-	int cl_id;
-
-	MyReq(int _id, int _cl_id) :
-	  id(_id),
-	  cl_id(_cl_id)
-	{
-	  // empty
-	}
-      }; // MyReq
-
       using ClientId = int;
-      using Queue = dmc::PullPriorityQueue<ClientId, MyReq>;
+      using Queue = dmc::PullPriorityQueue<ClientId,Request>;
       using QueueRef = std::unique_ptr<Queue>;
 
-      ClientId client1 = 1;
-      ClientId client2 = 2;
-      ClientId client3 = 3;
+      ClientId client1 = 17;
+      ClientId client2 = 18;
 
-
-      double reservation = 1.0;
+      double reservation = 10.0;
       double weight = 1.0;
 
-      dmc::ClientInfo ci1(reservation, weight, 0.0);
-      dmc::ClientInfo ci2(2*reservation, weight, 0.0);
-      dmc::ClientInfo ci3(3*reservation, weight, 0.0);
+      dmc::ClientInfo ci1(10, weight, 0.0);
+      dmc::ClientInfo ci2(20, weight, 1.0);
 
-      auto client_f = [&] (ClientId c) -> ClientId {
-	if (1 == c) return client1;
-	else if (2 == c) return client2;
-	else if (3 == c) return client3;
-	else {
-	  ADD_FAILURE() << "no client is selected";
-	  return 1; // must return
-	}
-      };
-
-      auto client_info_f = [&] (int c) -> dmc::ClientInfo {
+      auto client_info_f = [&] (ClientId c) -> dmc::ClientInfo {
 	if (client1 == c) return ci1;
 	else if (client2 == c) return ci2;
-	else if (client3 == c) return ci3;
 	else {
 	  ADD_FAILURE() << "got request from neither of two clients";
 	  return ci1; // must return
 	}
       };
 
-      QueueRef pq(new Queue(client_info_f, false , false));
+      QueueRef pq(new Queue(client_info_f, false));
+      Request req;
       ReqParams req_params(1,1);
 
       auto lock_pq = [&](std::function<void()> code) {
@@ -139,44 +114,14 @@ namespace crimson {
 	  EXPECT_FALSE(pq->use_heap) << "use_heap flag should be false for iiv";
       });
 
-      Time time = dmc::get_time();
-      std::vector<MyReq> requests;
-      for(int i = 0 ; i < 10 ; i++){
-	for (int j = 1 ; j <= 3 ; j++){
-	  MyReq r(i, j);
-	  requests.push_back(r);
-	  pq->add_request_time(r, client_f(j), req_params, time);
-	}
-      }
+      pq->add_request_time(req, client1, req_params, dmc::get_time());
+      pq->add_request_time(req, client2, req_params, dmc::get_time());
 
       std::this_thread::sleep_for(std::chrono::seconds(1));
 
       lock_pq([&] () {
 	  EXPECT_FALSE(pq->use_heap) << "use_heap should still be false";
-      });
-
-//
-//      EXPECT_EQ(2, pq.client_count());
-//      EXPECT_EQ(9, pq.request_count());
-//
-//      std::list<MyReq> removed;
-//
-//      pq.remove_by_client(client1, removed);
-//
-//      EXPECT_EQ(3, removed.size());
-//      EXPECT_EQ(1, removed.front().id);
-//      removed.pop_front();
-//      EXPECT_EQ(11, removed.front().id);
-//      removed.pop_front();
-//      EXPECT_EQ(44, removed.front().id);
-//      removed.pop_front();
-//
-//      EXPECT_EQ(6, pq.request_count());
-//
-//      Queue::PullReq pr = pq.pull_request();
-//      EXPECT_TRUE(pr.is_retn());
-//      EXPECT_EQ(2, pr.get_retn().request->id);
-
+	});
     }
 
     TEST(dmclock_server, client_idle_erase) {
