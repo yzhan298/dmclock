@@ -422,7 +422,7 @@ namespace crimson {
 	  // empty
 	}
 
-	IndIntruVector(const IndIntruVector < I , T, index_info , Cmp > &other) :
+	IndIntruVector(const IndIntruVector < I, T, index_info , Cmp > &other) :
 	  count(other.count),
 	  top_default(0),
 	  resv(other.resv),
@@ -470,17 +470,9 @@ namespace crimson {
 	  return *data[limit];
 	}
 
-	// slow call, use specialized version
+	// specialized tops
 	const T& top_limit() const {
 	  return *data[limit];
-	}
-
-	I& top_ind(index_t IndIntruVector::*which_top) {
-	  return data[this->*which_top];
-	}
-
-	const I& top_ind(index_t IndIntruVector::*which_top) const {
-	  return data[this->*which_top];
 	}
 
 	void push(I&& item) {
@@ -499,8 +491,20 @@ namespace crimson {
 	  remove(this->*where);
 	}
 
+	void pop_resv() {
+	  remove(resv);
+	}
+
+	void pop_ready() {
+	  remove(ready);
+	}
+
+	void pop_limit() {
+	  remove(limit);
+	}
+
 	void pop() {
-	  pop(&IndIntruVector::top_default);
+	  remove(top_default);
 	}
 	// use native loop to update 3 tops in one sweep
 	void adjust() {
@@ -574,7 +578,7 @@ namespace crimson {
 #if USE_PROP_HEAP
 	  , proportional
 #endif
-	  };
+      };
 
 
       // this is returned from next_req to tell the caller the situation
@@ -596,7 +600,7 @@ namespace crimson {
 	if (use_heap) {
 	  return (resv_heap.empty() || !resv_heap.top().has_request());
 	} else {
-	  return (cl_vec.empty() || !cl_vec.top(&iiv::resv).has_request());
+	  return (cl_vec.empty() || !cl_vec.top_resv().has_request());
 	}
       }
 
@@ -617,7 +621,7 @@ namespace crimson {
 	    total += i->request_count();
 	  }
 	} else {
-	  for ( auto i = 0 ; i < cl_vec.count ; i++) {
+	  for ( auto i = 0 ; i < cl_vec.size() ; i++) {
 	    total += cl_vec.data[i]->request_count();
 	  }
 	}
@@ -891,8 +895,6 @@ namespace crimson {
 	  }
 #endif
 
-
-
 	  if (use_heap) {
 	    resv_heap.push(client_rec);
 #if USE_PROP_HEAP
@@ -990,11 +992,10 @@ namespace crimson {
       } // pop_process_request
 
       // iiv version
-      void pop_process_request(size_t iiv::* which_tag,
+      void pop_process_request(ClientRec& top,
 			       std::function<void(const C& client,
 						  RequestRef& request)> process) {
 	// gain access to data
-	ClientRec& top = cl_vec.top(which_tag);
 	ClientReq& first = top.next_request();
 	RequestRef request = std::move(first.request);
 
@@ -1071,7 +1072,7 @@ namespace crimson {
 	}
 
 	// try constraint (reservation) based scheduling
-	auto& reserv = use_heap ? resv_heap.top() : cl_vec.top(&iiv::resv);
+	auto& reserv = use_heap ? resv_heap.top() : cl_vec.top_resv();
 	if (reserv.has_request() &&
 	    reserv.next_request().tag.reservation <= now) {
 	  result.type = NextReqType::returning;
@@ -1084,7 +1085,7 @@ namespace crimson {
 
 	// all items that are within limit are eligible based on
 	// priority
-	auto limits = use_heap ? &limit_heap.top() : &cl_vec.top(&iiv::limit);
+	auto limits = use_heap ? &limit_heap.top() : &cl_vec.top_limit();
 	while (limits->has_request() &&
 	       !limits->next_request().tag.ready &&
 	       limits->next_request().tag.limit <= now) {
@@ -1095,10 +1096,10 @@ namespace crimson {
 	  } else {
 	    cl_vec.adjust();
 	  }
-	  limits = use_heap ? &limit_heap.top() : &cl_vec.top(&iiv::limit);
+	  limits = use_heap ? &limit_heap.top() : &cl_vec.top_limit();
 	}
 
-	auto& readys = use_heap ? ready_heap.top() : cl_vec.top (&iiv::ready);
+	auto& readys = use_heap ? ready_heap.top() : cl_vec.top_ready();
 	if (readys.has_request() &&
 	    readys.next_request().tag.ready &&
 	    readys.next_request().tag.proportion < max_tag) {
@@ -1129,14 +1130,14 @@ namespace crimson {
 	// reservation item or next limited item comes up
 
 	Time next_call = TimeMax;
-	auto& r_top = use_heap ? resv_heap.top() : cl_vec.top(&iiv::resv);
+	auto& r_top = use_heap ? resv_heap.top() : cl_vec.top_resv();
 	if (r_top.has_request()) {
 	  next_call =
 	    min_not_0_time(next_call,
 			   r_top.next_request().tag.reservation);
 	}
 
-	auto& l_top = use_heap ? limit_heap.top() : cl_vec.top(&iiv::limit);
+	auto& l_top = use_heap ? limit_heap.top() : cl_vec.top_limit();
 	if (l_top.has_request()) {
 	  const auto& next = l_top.next_request();
 	  assert(!next.tag.ready);
@@ -1422,7 +1423,7 @@ namespace crimson {
 	    super::pop_process_request(this->resv_heap,
 				     process_f(result, PhaseType::reservation));
 	  } else {
-	    super::pop_process_request(&super::iiv::resv,
+	    super::pop_process_request(super::cl_vec.top_resv(),
 				     process_f(result, PhaseType::reservation));
 	  }
 	  ++this->reserv_sched_count;
@@ -1433,7 +1434,7 @@ namespace crimson {
 	  super::pop_process_request(this->ready_heap,
 				     process_f(result, PhaseType::priority));
 	  } else {
-	    super::pop_process_request(&super::iiv::ready,
+	    super::pop_process_request(super::cl_vec.top_ready(),
 				     process_f(result, PhaseType::priority));
 	  }
 	  auto& retn = boost::get<typename PullReq::Retn>(result.data);
@@ -1648,10 +1649,10 @@ namespace crimson {
       }
 
       // iiv version
-      C submit_top_request(size_t super::iiv::*which_top,  PhaseType phase) {
+      C submit_top_request(typename super::ClientRec& top,  PhaseType phase) {
 	C client_result;
 
-	super::pop_process_request( which_top,
+	super::pop_process_request( top,
 				   [this, phase, &client_result]
 				   (const C& client,
 				    typename super::RequestRef& request) {
@@ -1671,7 +1672,7 @@ namespace crimson {
 	  if (super::use_heap) {
 	    (void) submit_top_request(this->resv_heap, PhaseType::reservation);
 	  } else {
-	    (void) submit_top_request(&super::iiv::resv, PhaseType::reservation);
+	    (void) submit_top_request(super::cl_vec.top_resv(), PhaseType::reservation);
 	  }
 	  // unlike the other two cases, we do not reduce reservation
 	  // tags here
@@ -1681,7 +1682,7 @@ namespace crimson {
 	  if (super::use_heap) {
 	    client = submit_top_request(this->ready_heap, PhaseType::priority);
 	  } else {
-	    client = submit_top_request(&super::iiv::ready, PhaseType::priority);
+	    client = submit_top_request(super::cl_vec.top_ready(), PhaseType::priority);
 	  }
 	  super::reduce_reservation_tags(client);
 	  ++this->prop_sched_count;

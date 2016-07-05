@@ -36,6 +36,14 @@ namespace crimson {
 
 
 int main(int argc, char* argv[]) {
+    bool use_heap = true;
+    if(argc > 1 ){
+      use_heap = false;
+      std::cout << "using iiv ..." << std::endl;
+    } else {
+      std::cout << "using iih ..." << std::endl;
+    }
+
     // server params
 
     const uint server_count = 100; //
@@ -46,7 +54,7 @@ int main(int argc, char* argv[]) {
     // client params
 
     const uint client_total_ops = 1000;
-    const uint client_count = 10; // few clients
+    const uint client_count = 100; //100 few clients
     const uint client_server_select_range = 10;
     const uint client_wait_count = 1;
     const uint client_iops_goal = 50;
@@ -113,7 +121,7 @@ int main(int argc, char* argv[]) {
     test::CreateQueueF create_queue_f =
         [&](test::DmcQueue::CanHandleRequestFunc can_f,
             test::DmcQueue::HandleRequestFunc handle_f) -> test::DmcQueue* {
-        return new test::DmcQueue(client_info_f, can_f, handle_f, server_soft_limit);
+        return new test::DmcQueue(client_info_f, can_f, handle_f, server_soft_limit, use_heap);
     };
 
   
