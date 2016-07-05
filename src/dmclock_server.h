@@ -438,12 +438,41 @@ namespace crimson {
 
 	size_t size() const { return count; }
 
+	// slow call, use specialized version
 	T& top(index_t IndIntruVector::*which_top) {
 	  return *data[this->*which_top];
 	}
 
+	// slow call, use specialized version
 	const T& top(index_t IndIntruVector::*which_top) const {
 	  return *data[this->*which_top];
+	}
+
+	T& top_resv() {
+	  return *data[resv];
+	}
+
+	// slow call, use specialized version
+	const T& top_resv() const {
+	  return *data[resv];
+	}
+
+	T& top_ready() {
+	  return *data[ready];
+	}
+
+	// slow call, use specialized version
+	const T& top_ready() const {
+	  return *data[ready];
+	}
+
+	T& top_limit() {
+	  return *data[limit];
+	}
+
+	// slow call, use specialized version
+	const T& top_limit() const {
+	  return *data[limit];
 	}
 
 	I& top_ind(index_t IndIntruVector::*which_top) {
@@ -807,7 +836,8 @@ namespace crimson {
 			std::chrono::duration<Rep,Per> _idle_age,
 			std::chrono::duration<Rep,Per> _erase_age,
 			std::chrono::duration<Rep,Per> _check_time,
-			bool _allow_limit_break) :
+			bool _allow_limit_break,
+			bool _use_heap):
 	client_info_f(_client_info_f),
 	allow_limit_break(_allow_limit_break),
 	finishing(false),
@@ -816,7 +846,7 @@ namespace crimson {
 	check_time(std::chrono::duration_cast<Duration>(_check_time)),
 	cutoff_for_iiv(100),
 	cutoff_for_iih(1000),
-	use_heap(false)
+	use_heap(_use_heap)
       {
 	assert(_erase_age >= _idle_age);
 	assert(_check_time < _idle_age);
@@ -841,7 +871,7 @@ namespace crimson {
 	++tick;
 
 	// this pointer will help us create a reference to a shared
-	// pointer, no matter which of two codepaths we take
+	// pointer, no matter which of two code-paths we take
 	ClientRec* temp_client;
 	
 	auto client_it = client_map.find(client_id);
@@ -1242,10 +1272,12 @@ namespace crimson {
 			std::chrono::duration<Rep,Per> _idle_age,
 			std::chrono::duration<Rep,Per> _erase_age,
 			std::chrono::duration<Rep,Per> _check_time,
-			bool _allow_limit_break = false) :
+			bool _allow_limit_break = false,
+			bool _use_heap = true) :
 	super(_client_info_f,
 	      _idle_age, _erase_age, _check_time,
-	      _allow_limit_break)
+	      _allow_limit_break,
+	      _use_heap)
       {
 	// empty
       }
@@ -1253,12 +1285,14 @@ namespace crimson {
 
       // pull convenience constructor
       PullPriorityQueue(typename super::ClientInfoFunc _client_info_f,
-			bool _allow_limit_break = false) :
+			bool _allow_limit_break = false,
+			bool _use_heap = true) :
 	PullPriorityQueue(_client_info_f,
 			  std::chrono::minutes(10),
 			  std::chrono::minutes(15),
 			  std::chrono::minutes(6),
-			  _allow_limit_break)
+			  _allow_limit_break,
+			  _use_heap)
       {
 	// empty
       }
@@ -1489,10 +1523,12 @@ namespace crimson {
 			std::chrono::duration<Rep,Per> _idle_age,
 			std::chrono::duration<Rep,Per> _erase_age,
 			std::chrono::duration<Rep,Per> _check_time,
-			bool _allow_limit_break = false) :
+			bool _allow_limit_break = false,
+			bool _use_heap = true) :
 	super(_client_info_f,
 	      _idle_age, _erase_age, _check_time,
-	      _allow_limit_break)
+	      _allow_limit_break,
+	      _use_heap)
       {
 	can_handle_f = _can_handle_f;
 	handle_f = _handle_f;
@@ -1504,14 +1540,16 @@ namespace crimson {
       PushPriorityQueue(typename super::ClientInfoFunc _client_info_f,
 			CanHandleRequestFunc _can_handle_f,
 			HandleRequestFunc _handle_f,
-			bool _allow_limit_break = false) :
+			bool _allow_limit_break = false,
+			bool _use_heap = true) :
 	PushPriorityQueue(_client_info_f,
 			  _can_handle_f,
 			  _handle_f,
 			  std::chrono::minutes(10),
 			  std::chrono::minutes(15),
 			  std::chrono::minutes(6),
-			  _allow_limit_break)
+			  _allow_limit_break,
+			  _use_heap)
       {
 	// empty
       }
