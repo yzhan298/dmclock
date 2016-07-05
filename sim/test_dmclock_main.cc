@@ -34,19 +34,48 @@ namespace crimson {
     }
 }
 
+void print_usage(){
+  std::cout << "Usage: dmc_sim [-v] -s #server -c #client" << std::endl;
+}
+
+bool parse_options (int argc, char* argv[], uint& nserver, uint& nclient, bool& use_iiv){
+    int option = 0;
+
+    while ((option = getopt(argc, argv,"vs:c:")) != -1) {
+      switch (option) {
+       case 'v' : use_iiv = true;
+	     break;
+	 case 's' : nserver = atoi(optarg);
+	     break;
+	 case 'c' : nclient = atoi(optarg);
+	     break;
+	 default: print_usage();
+	     return false;
+      }
+    }
+    if (!nserver || !nclient) {
+	print_usage();
+	return false;
+    }
+    return true;
+}
 
 int main(int argc, char* argv[]) {
-    bool use_heap = true;
-    if(argc > 1 ){
-      use_heap = false;
-      std::cout << "using iiv ..." << std::endl;
+    bool use_iiv(false);
+    uint server_count(0) , client_count(0);
+    if(parse_options(argc, argv, server_count, client_count, use_iiv) ){
+      if (use_iiv) {
+	std::cout << "using iiv ..." << std::endl;
+      } else {
+	std::cout << "using iih ..." << std::endl;
+      }
     } else {
-      std::cout << "using iih ..." << std::endl;
+      exit (-1);
     }
 
     // server params
 
-    const uint server_count = 100; //
+    //const uint server_count = 100; //100
     const uint server_iops = 40;
     const uint server_threads = 1;
     const bool server_soft_limit = true;
@@ -54,7 +83,7 @@ int main(int argc, char* argv[]) {
     // client params
 
     const uint client_total_ops = 1000;
-    const uint client_count = 100; //100 few clients
+    //const uint client_count = 10; //100 few clients
     const uint client_server_select_range = 10;
     const uint client_wait_count = 1;
     const uint client_iops_goal = 50;
@@ -121,7 +150,7 @@ int main(int argc, char* argv[]) {
     test::CreateQueueF create_queue_f =
         [&](test::DmcQueue::CanHandleRequestFunc can_f,
             test::DmcQueue::HandleRequestFunc handle_f) -> test::DmcQueue* {
-        return new test::DmcQueue(client_info_f, can_f, handle_f, server_soft_limit, use_heap);
+        return new test::DmcQueue(client_info_f, can_f, handle_f, server_soft_limit, !use_iiv);
     };
 
   
