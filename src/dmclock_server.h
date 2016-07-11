@@ -374,37 +374,38 @@ namespace crimson {
       // Indirect Intrusive Vector Data Structure
       using IndIntruVectorData = size_t;
 
-      template<typename I, typename T, IndIntruVectorData T::*index_info,
-	template < double RequestTag::*, ReadyOption, bool > class Cmp>
+      template<typename I, typename T, IndIntruVectorData T::*index_info ,
+	/*template < double RequestTag::*, ReadyOption, bool >*/ class Cmp>
       class IndIntruVector {
 	friend PriorityQueueBase;
 
-	static_assert(
-	  std::is_same<T,typename std::pointer_traits<I>::element_type>::value,
-	  "class I must resolve to class T by indirection (pointer dereference)");
-
-	Cmp<&RequestTag::reservation,
-	    ReadyOption::ignore,
-	    false >              cmp_resv;
-
 //	static_assert(
-//	  std::is_same< bool,
-//	  typename std::result_of<Cmp(const T&, const T&)>::type >::value,
-//	  "class Cmp must define operator() to take two const T& and return a bool");
-
-	Cmp<&RequestTag::proportion,
-	    ReadyOption::raises,
-	    true >               cmp_ready;
-
-	Cmp<&RequestTag::limit,
-	    ReadyOption::lowers,
-	    false >              cmp_limit;
-
+//	  std::is_same<T,typename std::pointer_traits<I>::element_type>::value,
+//	  "class I must resolve to class T by indirection (pointer dereference)");
+//
+//	Cmp<&RequestTag::reservation,
+//	    ReadyOption::ignore,
+//	    false >              cmp_resv;
+//
+////	static_assert(
+////	  std::is_same< bool,
+////	  typename std::result_of<Cmp(const T&, const T&)>::type >::value,
+////	  "class Cmp must define operator() to take two const T& and return a bool");
+//
+//	Cmp<&RequestTag::proportion,
+//	    ReadyOption::raises,
+//	    true >               cmp_ready;
+//
+//	Cmp<&RequestTag::limit,
+//	    ReadyOption::lowers,
+//	    false >              cmp_limit;
+	Cmp                      cmp;
       protected:
 	using index_t = IndIntruVectorData;
 	std::vector<I>           data;
 	index_t                  count;
 	const index_t            top_default;
+	bool                     resv_flag, ready_flag, limit_flag;
 
       public:
 	index_t                  resv;
@@ -507,58 +508,94 @@ namespace crimson {
 	  remove(top_default);
 	}
 
-	void adjust_resv(index_t _resv = 0) {
+//	void adjust_resv(index_t _resv = 0) {
+//	  resv = 0;
+//	  for (index_t i = 1 ; i < count; i++){
+//	    if (cmp_resv(*data[i], *data[resv])){
+//	      resv = i;
+//	    }
+//	  }
+//	}
+
+	void adjust_resv() {
 	  resv = 0;
 	  for (index_t i = 1 ; i < count; i++){
-	    if (cmp_resv(*data[i], *data[resv])){
+	    cmp(&resv_flag, NULL, NULL, &(*data[i]), &(*data[resv]), NULL, NULL);
+	    if (resv_flag){
 	      resv = i;
 	    }
 	  }
 	}
 
-	void adjust_resv_ready() {
-	  resv = ready = 0;
-	  T* elem;
-	  for (index_t i = 1 ; i < count; i++){
-	    elem = &(*data[i]);
-	    if (cmp_resv(*elem, *data[resv])){
-	      resv = i;
-	    }
-	    if (cmp_ready(*elem, *data[ready])){
-	      ready = i;
-	    }
-	  }
-	}
+
+
+//	void adjust_ready_limit() {
+//	  ready = limit = 0;
+//	  T* elem;
+//	  for (index_t i = 1 ; i < count; i++){
+//	    elem = &(*data[i]);
+//	    if (cmp_ready(*elem, *data[ready])){
+//	      ready = i;
+//	    }
+//	    if (cmp_limit(*elem, *data[limit])){
+//	      limit = i;
+//	    }
+//	  }
+//	}
 
 	void adjust_ready_limit() {
 	  ready = limit = 0;
-	  T* elem;
 	  for (index_t i = 1 ; i < count; i++){
-	    elem = &(*data[i]);
-	    if (cmp_ready(*elem, *data[ready])){
+	    cmp(NULL, &ready_flag, &limit_flag, &(*data[i]), NULL, &(*data[ready]), &(*data[limit]));
+	    if (ready_flag){
 	      ready = i;
 	    }
-	    if (cmp_limit(*elem, *data[limit])){
-	      limit = i;
+	    if (limit_flag){
+		limit = i;
 	    }
 	  }
+//	  for (index_t i = 1 ; i < count; i++){
+//	    elem = &(*data[i]);
+//	    if (cmp_ready(*elem, *data[ready])){
+//	      ready = i;
+//	    }
+//	    if (cmp_limit(*elem, *data[limit])){
+//	      limit = i;
+//	    }
+//	  }
 	}
 
 	// use native loop to update 3 tops in one sweep
+//	void adjust() {
+//	  resv = ready = limit = 0;
+//	  T *elem;
+//	  for (index_t i = 1 ; i < count; i++){
+//	    elem = &(*data[i]);
+//	    if (cmp_resv(*elem, *data[resv])){
+//	      resv = i;
+//	    }
+//
+//	    if (cmp_ready(*elem, *data[ready])){
+//	      ready = i;
+//	    }
+//
+//	    if (cmp_limit(*elem, *data[limit])){
+//	      limit = i;
+//	    }
+//	  }
+//	}
+
 	void adjust() {
 	  resv = ready = limit = 0;
-	  T *elem;
 	  for (index_t i = 1 ; i < count; i++){
-	    elem = &(*data[i]);
-	    if (cmp_resv(*elem, *data[resv])){
+	    cmp(&resv_flag, &ready_flag, &limit_flag, &(*data[i]), &(*data[resv]), &(*data[ready]), &(*data[limit]));
+	    if (resv_flag){
 	      resv = i;
 	    }
-
-	    if (cmp_ready(*elem, *data[ready])){
+	    if (ready_flag){
 	      ready = i;
 	    }
-
-	    if (cmp_limit(*elem, *data[limit])){
+	    if (limit_flag){
 	      limit = i;
 	    }
 	  }
@@ -599,10 +636,16 @@ namespace crimson {
       }; // class IntruIndirectVector
 
       // IndIntruVector based ClientRec data-structure
+//      using iiv = IndIntruVector<ClientRecRef,
+//				 ClientRec,
+//				 &ClientRec::lookup_vector_data,
+//				 ClientCompare>;
+      // forward declaration
+      struct ClientCompareAtOnce;
       using iiv = IndIntruVector<ClientRecRef,
 				 ClientRec,
 				 &ClientRec::lookup_vector_data,
-				 ClientCompare>;
+				 ClientCompareAtOnce>;
       iiv                        cl_vec;
 
 
@@ -803,6 +846,88 @@ namespace crimson {
 	  }
 	}
       };
+
+      // compare two clients at once
+      struct ClientCompareAtOnce {
+
+	void operator()(bool *resv_flag,
+			  bool *ready_flag,
+			  bool *limit_flag,
+			  const ClientRec *n1,
+			  const ClientRec *n2,
+			  const ClientRec *n3,
+			  const ClientRec *n4
+			  ) const {
+
+	  const RequestTag *t1 = NULL;
+	  if (n1->has_request()){
+	    const RequestTag& _t1 = n1->next_request().tag;
+	    t1 = &_t1;
+	  }
+
+	  // reservation
+	  if (resv_flag) {
+	    if (t1) {
+	      if (n2->has_request()) {
+		//const RequestTag& t1 = n1->next_request().tag;
+		const RequestTag& t2 = n2->next_request().tag;
+		*resv_flag  = (t1->reservation < t2.reservation);
+	      } else {
+		// n1 has request but n2 does not
+		*resv_flag  = true;
+	      }
+	    } else if (n2->has_request()) {
+	      // n2 has request but n1 does not
+	      *resv_flag  = false;
+	    } else {
+	      // both have none; keep stable w false
+	      *resv_flag  = false;
+	    }
+	  }
+
+	  // proportion
+	  if (ready_flag) {
+	    if (t1) {
+	      if (n3->has_request()) {
+		//const RequestTag& t1 = n1->next_request().tag;
+		const RequestTag& t3 = n3->next_request().tag;
+		*ready_flag = (t1->ready == t3.ready) ?
+				 ((t1->proportion + n1->prop_delta) <
+				     (t3.proportion + n3->prop_delta)) :
+				 t1->ready;
+	      } else {
+		// n1 has request but n4 does not
+		*ready_flag = true;
+	      }
+	    } else if (n3->has_request()) {
+	      // n3 has request but n1 does not
+	      *ready_flag = false;
+	    } else {
+	      // both have none; keep stable w false
+	      *ready_flag = false;
+	    }
+	  }
+	  // limit
+	  if (limit_flag) {
+	    if (t1) {
+	      if (n4->has_request()) {
+		//const RequestTag& t1 = n1->next_request().tag;
+		const RequestTag& t4 = n4->next_request().tag;
+		*limit_flag = (t1->ready == t4.ready) ? (t1->limit < t4.limit) : t4.ready;
+	      } else {
+		// n1 has request but n3 does not
+		*limit_flag = true;
+	      }
+	    } else if (n4->has_request()) {
+	      // n4 has request but n1 does not
+	      *limit_flag = false;
+	    } else {
+	      // both have none; keep stable w false
+	      *limit_flag = false;
+	    }
+	  }
+	} // end operator(...)
+      }; // end ClientCompareAtOnce
 
       ClientInfoFunc       client_info_f;
 
