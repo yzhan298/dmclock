@@ -1,0 +1,57 @@
+
+num_server:1, num_client:1, iih
+    average: 999.29 nanoseconds per request/response
+    average: 1178.83 nanoseconds per request/response
+Server add_request_timer: count:1000, mean:6819.65, std_dev:3851.32, low:308, high:46699
+Server request_complete_timer: count:1000, mean:1382.17, std_dev:1245.07, low:144, high:25232
+    average: 7888.01 nanoseconds per request/response
+    average: 2135.86 nanoseconds per request/response
+num_server:1, num_client:1, iiv
+    average: 856.21 nanoseconds per request/response
+    average: 1171.38 nanoseconds per request/response
+Server add_request_timer: count:1000, mean:7390.07, std_dev:5141.42, low:285, high:27320
+Server request_complete_timer: count:1000, mean:1532.80, std_dev:2819.87, low:73, high:60024
+    average: 8324.91 nanoseconds per request/response
+    average: 2091.24 nanoseconds per request/response
+num_server:1, num_client:6, iih
+    average: 590.09 nanoseconds per request/response
+    average: 734.35 nanoseconds per request/response
+Server add_request_timer: count:6000, mean:6537.99, std_dev:5127.55, low:198, high:51251
+Server request_complete_timer: count:6000, mean:1203.06, std_dev:1556.84, low:117, high:39853
+    average: 7809.69 nanoseconds per request/response
+    average: 1686.44 nanoseconds per request/response
+num_server:1, num_client:6, iiv
+    average: 685.30 nanoseconds per request/response
+    average: 683.34 nanoseconds per request/response
+Server add_request_timer: count:6000, mean:6705.32, std_dev:5124.40, low:244, high:77744
+Server request_complete_timer: count:6000, mean:1358.65, std_dev:2085.73, low:93, high:67431
+    average: 8792.93 nanoseconds per request/response
+    average: 1889.27 nanoseconds per request/response
+num_server:6, num_client:1, iih
+    average: 667.37 nanoseconds per request/response
+    average: 1053.99 nanoseconds per request/response
+Server add_request_timer: count:1000, mean:6699.10, std_dev:2453.94, low:3422, high:38359
+Server request_complete_timer: count:1000, mean:1245.43, std_dev:714.61, low:476, high:18315
+    average: 7345.20 nanoseconds per request/response
+    average: 1644.43 nanoseconds per request/response
+num_server:6, num_client:1, iiv
+    average: 619.51 nanoseconds per request/response
+    average: 1096.42 nanoseconds per request/response
+Server add_request_timer: count:1000, mean:6239.39, std_dev:1892.50, low:2412, high:22143
+Server request_complete_timer: count:1000, mean:1262.17, std_dev:363.39, low:470, high:2681
+    average: 6884.55 nanoseconds per request/response
+    average: 1657.66 nanoseconds per request/response
+num_server:6, num_client:6, iih
+    average: 760.15 nanoseconds per request/response
+    average: 822.59 nanoseconds per request/response
+Server add_request_timer: count:6000, mean:3795.61, std_dev:2463.99, low:332, high:52066
+Server request_complete_timer: count:6000, mean:1528.94, std_dev:1688.57, low:124, high:26104
+    average: 4487.09 nanoseconds per request/response
+    average: 1986.31 nanoseconds per request/response
+num_server:6, num_client:6, iiv
+    average: 766.41 nanoseconds per request/response
+    average: 838.83 nanoseconds per request/response
+Server add_request_timer: count:6000, mean:3582.14, std_dev:2503.84, low:425, high:39490
+Server request_complete_timer: count:6000, mean:1544.78, std_dev:1868.08, low:96, high:28831
+    average: 4278.38 nanoseconds per request/response
+    average: 1978.14 nanoseconds per request/response

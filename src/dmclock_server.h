@@ -439,39 +439,39 @@ namespace crimson {
 	size_t size() const { return count; }
 
 	// slow call, use specialized version
-	T& top(index_t IndIntruVector::*which_top) {
+	inline T& top(index_t IndIntruVector::*which_top) {
 	  return *data[this->*which_top];
 	}
 
 	// slow call, use specialized version
-	const T& top(index_t IndIntruVector::*which_top) const {
+	inline const T& top(index_t IndIntruVector::*which_top) const {
 	  return *data[this->*which_top];
 	}
 
-	T& top_resv() {
+	inline T& top_resv() {
 	  return *data[resv];
 	}
 
 	// slow call, use specialized version
-	const T& top_resv() const {
+	inline const T& top_resv() const {
 	  return *data[resv];
 	}
 
-	T& top_ready() {
+	inline T& top_ready() {
 	  return *data[ready];
 	}
 
 	// slow call, use specialized version
-	const T& top_ready() const {
+	inline const T& top_ready() const {
 	  return *data[ready];
 	}
 
-	T& top_limit() {
+	inline T& top_limit() {
 	  return *data[limit];
 	}
 
 	// specialized tops
-	const T& top_limit() const {
+	inline const T& top_limit() const {
 	  return *data[limit];
 	}
 
@@ -506,20 +506,59 @@ namespace crimson {
 	void pop() {
 	  remove(top_default);
 	}
-	// use native loop to update 3 tops in one sweep
-	void adjust() {
-	  resv = ready = limit = 0;
 
+	void adjust_resv(index_t _resv = 0) {
+	  resv = 0;
 	  for (index_t i = 1 ; i < count; i++){
 	    if (cmp_resv(*data[i], *data[resv])){
 	      resv = i;
 	    }
+	  }
+	}
 
-	    if (cmp_ready(*data[i], *data[ready])){
+	void adjust_resv_ready() {
+	  resv = ready = 0;
+	  T* elem;
+	  for (index_t i = 1 ; i < count; i++){
+	    elem = &(*data[i]);
+	    if (cmp_resv(*elem, *data[resv])){
+	      resv = i;
+	    }
+	    if (cmp_ready(*elem, *data[ready])){
+	      ready = i;
+	    }
+	  }
+	}
+
+	void adjust_ready_limit() {
+	  ready = limit = 0;
+	  T* elem;
+	  for (index_t i = 1 ; i < count; i++){
+	    elem = &(*data[i]);
+	    if (cmp_ready(*elem, *data[ready])){
+	      ready = i;
+	    }
+	    if (cmp_limit(*elem, *data[limit])){
+	      limit = i;
+	    }
+	  }
+	}
+
+	// use native loop to update 3 tops in one sweep
+	void adjust() {
+	  resv = ready = limit = 0;
+	  T *elem;
+	  for (index_t i = 1 ; i < count; i++){
+	    elem = &(*data[i]);
+	    if (cmp_resv(*elem, *data[resv])){
+	      resv = i;
+	    }
+
+	    if (cmp_ready(*elem, *data[ready])){
 	      ready = i;
 	    }
 
-	    if (cmp_limit(*data[i], *data[limit])){
+	    if (cmp_limit(*elem, *data[limit])){
 	      limit = i;
 	    }
 	  }
@@ -992,19 +1031,32 @@ namespace crimson {
       } // pop_process_request
 
       // iiv version
-      void pop_process_request(ClientRec& top,
+      void pop_process_request(PhaseType phase ,
 			       std::function<void(const C& client,
 						  RequestRef& request)> process) {
 	// gain access to data
-	ClientReq& first = top.next_request();
+	ClientRec* top;
+	switch(phase){
+	  case PhaseType::reservation:
+	    top = &cl_vec.top_resv();
+	    break;
+	  case PhaseType::priority:
+	    top = &cl_vec.top_ready();
+	    break;
+	  default:
+	    assert(false);
+	}
+	//ClientRec& top = cl_vec.data[which_top];
+	//ClientRec& top = top_f();
+	ClientReq& first = top->next_request();
 	RequestRef request = std::move(first.request);
 
 	// pop request and adjust vector
-	top.pop_request();
+	top->pop_request();
 	cl_vec.adjust();
 
 	// process
-	process(top.client, request);
+	process(top->client, request);
       } // pop_process_request
 
       // for debugging
@@ -1044,7 +1096,8 @@ namespace crimson {
 	if (use_heap) {
 	  resv_heap.promote(client);
 	} else {
-	  cl_vec.adjust();
+	  //cl_vec.adjust();
+	  cl_vec.adjust_resv();
 	}
       }
 
@@ -1094,7 +1147,7 @@ namespace crimson {
 	    ready_heap.promote(*limits);
 	    limit_heap.demote(*limits);
 	  } else {
-	    cl_vec.adjust();
+	    cl_vec.adjust_ready_limit();
 	  }
 	  limits = use_heap ? &limit_heap.top() : &cl_vec.top_limit();
 	}
@@ -1423,7 +1476,7 @@ namespace crimson {
 	    super::pop_process_request(this->resv_heap,
 				     process_f(result, PhaseType::reservation));
 	  } else {
-	    super::pop_process_request(super::cl_vec.top_resv(),
+	    super::pop_process_request(PhaseType::reservation,
 				     process_f(result, PhaseType::reservation));
 	  }
 	  ++this->reserv_sched_count;
@@ -1431,10 +1484,10 @@ namespace crimson {
 	case super::HeapId::ready:
 	{
 	  if (super::use_heap) {
-	  super::pop_process_request(this->ready_heap,
+	    super::pop_process_request(this->ready_heap,
 				     process_f(result, PhaseType::priority));
 	  } else {
-	    super::pop_process_request(super::cl_vec.top_ready(),
+	    super::pop_process_request(PhaseType::priority,
 				     process_f(result, PhaseType::priority));
 	  }
 	  auto& retn = boost::get<typename PullReq::Retn>(result.data);
@@ -1649,10 +1702,10 @@ namespace crimson {
       }
 
       // iiv version
-      C submit_top_request(typename super::ClientRec& top,  PhaseType phase) {
+      C submit_top_request(PhaseType phase) {
 	C client_result;
 
-	super::pop_process_request( top,
+	super::pop_process_request( phase,
 				   [this, phase, &client_result]
 				   (const C& client,
 				    typename super::RequestRef& request) {
@@ -1672,7 +1725,7 @@ namespace crimson {
 	  if (super::use_heap) {
 	    (void) submit_top_request(this->resv_heap, PhaseType::reservation);
 	  } else {
-	    (void) submit_top_request(super::cl_vec.top_resv(), PhaseType::reservation);
+	    (void) submit_top_request(PhaseType::reservation);
 	  }
 	  // unlike the other two cases, we do not reduce reservation
 	  // tags here
@@ -1682,7 +1735,7 @@ namespace crimson {
 	  if (super::use_heap) {
 	    client = submit_top_request(this->ready_heap, PhaseType::priority);
 	  } else {
-	    client = submit_top_request(super::cl_vec.top_ready(), PhaseType::priority);
+	    client = submit_top_request(PhaseType::priority);
 	  }
 	  super::reduce_reservation_tags(client);
 	  ++this->prop_sched_count;

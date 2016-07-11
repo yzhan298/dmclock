@@ -36,7 +36,7 @@ namespace crimson {
       code();
     }
 
-
+#if 0
     TEST(dmclock_server, bad_tag_deathtest) {
       using ClientId = int;
       using Queue = dmc::PullPriorityQueue<ClientId,Request>;
@@ -77,7 +77,7 @@ namespace crimson {
 	"we should fail if a client tries to generate a reservation tag "
 	"where reservation and proportion are both 0";
     }
-
+#endif
 
     TEST(dmclock_server, test_iiv) {
       using ClientId = int;
@@ -87,11 +87,11 @@ namespace crimson {
       ClientId client1 = 17;
       ClientId client2 = 18;
 
-      double reservation = 10.0;
-      double weight = 1.0;
+      double reservation = 1.0;
+      double weight = 0.0;
 
-      dmc::ClientInfo ci1(10, weight, 0.0);
-      dmc::ClientInfo ci2(20, weight, 1.0);
+      dmc::ClientInfo ci1(1*reservation, weight, 0.0);
+      dmc::ClientInfo ci2(2*reservation, weight, 1.0);
 
       auto client_info_f = [&] (ClientId c) -> dmc::ClientInfo {
 	if (client1 == c) return ci1;
@@ -111,13 +111,58 @@ namespace crimson {
       };
 
       lock_pq([&] () {
-	  EXPECT_FALSE(pq->use_heap) << "use_heap flag should be false for iiv";
+	EXPECT_FALSE(pq->use_heap) << "use_heap flag should be false for iiv";
       });
 
-      pq->add_request_time(req, client1, req_params, dmc::get_time());
-      pq->add_request_time(req, client2, req_params, dmc::get_time());
+      Time now;
+      Queue::PullReq pr;
+      // 1. test if the min index in iiv vector is pointed to 0
+//      now = dmc::get_time();
+//      for (int i = 0 ; i < 10 ; i++){
+//	pq->add_request_time(req, client1, req_params, now);
+//      }
+//
 
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+//      for (int i = 0 ; i < 10 ; i++){
+//	std::this_thread::sleep_for(std::chrono::seconds(1));
+//	pr = pq->pull_request();
+//	EXPECT_TRUE(pr.is_retn());
+//	//EXPECT_EQ(2, pr->get_retn().request->id);
+//	EXPECT_EQ(0, pq->cl_vec.resv);
+//	EXPECT_EQ(0, pq->cl_vec.ready);
+//
+//      }
+
+      // 2. test if the min index moves correctly in iiv
+      now = dmc::get_time();
+      for (int i = 0 ; i < 5 ; i++){
+	pq->add_request_time(req, client1, req_params, now);
+	now += 0.0001;
+	pq->add_request_time(req, client2, req_params, now);
+	now += 0.0001;
+      }
+
+      // the index should flip-flop between 0 and 1
+//      for (int i = 0 ; i < 5 ; i++){
+//	EXPECT_EQ(0, pq->cl_vec.resv);
+//	EXPECT_EQ(0, pq->cl_vec.ready);
+//	pr = pq->pull_request(); //client 1
+//	EXPECT_TRUE(pr.is_retn());
+//
+//	//std::this_thread::sleep_for(std::chrono::milliseconds(500));
+//	EXPECT_EQ(1, pq->cl_vec.resv);
+//	EXPECT_EQ(0, pq->cl_vec.ready);
+//	pr = pq->pull_request(); //client 2
+//
+//	//std::this_thread::sleep_for(std::chrono::milliseconds(500));
+//	EXPECT_EQ(1, pq->cl_vec.resv);
+//	EXPECT_EQ(0, pq->cl_vec.ready);
+//	pr = pq->pull_request(); //client 2
+//
+//      }
+
+      //pq->add_request_time(req, client2, req_params, dmc::get_time());
+      //std::this_thread::sleep_for(std::chrono::seconds(1));
 
       lock_pq([&] () {
 	  EXPECT_FALSE(pq->use_heap) << "use_heap should still be false";
@@ -145,6 +190,7 @@ namespace crimson {
 	       std::chrono::seconds(3),
 	       std::chrono::seconds(5),
 	       std::chrono::seconds(2),
+	       false,
 	       false);
 
       auto lock_pq = [&](std::function<void()> code) {
@@ -283,7 +329,7 @@ namespace crimson {
 	return info1;
       };
 
-      Queue pq(client_info_f, true);
+      Queue pq(client_info_f, true, false);
 
       EXPECT_EQ(0, pq.client_count());
       EXPECT_EQ(0, pq.request_count());
@@ -343,7 +389,7 @@ namespace crimson {
 	return info1;
       };
 
-      Queue pq(client_info_f, true);
+      Queue pq(client_info_f, true, false);
 
       EXPECT_EQ(0, pq.client_count());
       EXPECT_EQ(0, pq.request_count());
@@ -409,7 +455,7 @@ namespace crimson {
 	return info1;
       };
 
-      Queue pq(client_info_f, true);
+      Queue pq(client_info_f, true, false);
 
       EXPECT_EQ(0, pq.client_count());
       EXPECT_EQ(0, pq.request_count());
@@ -479,7 +525,7 @@ namespace crimson {
 	}
       };
 
-      pq = QueueRef(new Queue(client_info_f, false));
+      pq = QueueRef(new Queue(client_info_f, false, false));
 
       Request req;
       ReqParams req_params(1,1);
@@ -533,7 +579,7 @@ namespace crimson {
 	}
       };
 
-      QueueRef pq(new Queue(client_info_f, false));
+      QueueRef pq(new Queue(client_info_f, false, false));
 
       Request req;
       ReqParams req_params(1,1);
@@ -580,7 +626,7 @@ namespace crimson {
 	return info;
       };
 
-      QueueRef pq(new Queue(client_info_f, false));
+      QueueRef pq(new Queue(client_info_f, false, false));
 
       Request req;
       ReqParams req_params(1,1);
@@ -607,7 +653,7 @@ namespace crimson {
 	return info;
       };
 
-      QueueRef pq(new Queue(client_info_f, false));
+      QueueRef pq(new Queue(client_info_f, false, true));
 
       Request req;
       ReqParams req_params(1,1);
