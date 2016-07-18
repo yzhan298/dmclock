@@ -8,18 +8,11 @@
 
 #pragma once
 
-
-#include <memory>
-#include <vector>
-#include <string>
-#include <iostream>
-#include <functional>
-
-#include "assert.h"
+#include "indirect_intrusive_base.h"
 
 
 namespace crimson {
-  using IndIntruHeapData = size_t;
+  //using IndIntruHeapData = size_t;
 
   /* T is the ultimate data that's being stored in the heap, although
    *   through indirection.
@@ -33,9 +26,9 @@ namespace crimson {
    *
    * heap_info is a data member pointer as to where the heap data in T
    * is stored.
-   */
+   */ //public Base<int, short, double>
   template<typename I, typename T, IndIntruHeapData T::*heap_info, typename C>
-  class IndIntruHeap {
+  class IndIntruHeap : public IndIntruBase <I, T, heap_info, C> {
 
     static_assert(
       std::is_same<T,typename std::pointer_traits<I>::element_type>::value,
