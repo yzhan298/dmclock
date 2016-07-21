@@ -10,7 +10,7 @@ set(srcs
   test_intrusive_heap.cc)
 add_executable(test_intru_heap test_intrusive_heap.cc)
 
-set(test_srcs test_indirect_intrusive_heap.cc test_indirect_intrusive_linear_heap.cc)
+set(test_srcs test_indirect_intrusive_heap.cc test_indirect_intrusive_simple_pq.cc test_indirect_intrusive_base.cc)
 
 set_source_files_properties(${srcs} ${test_srcs}
   PROPERTIES

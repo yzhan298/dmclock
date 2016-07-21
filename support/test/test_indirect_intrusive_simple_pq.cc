@@ -11,7 +11,7 @@
 
 #include "gtest/gtest.h"
 
-#include "indirect_intrusive_heap.h"
+#include "indirect_intrusive_simple_pq.h"
 
 
 struct Elem {
@@ -55,11 +55,11 @@ struct ElemCompareAlt {
 };
 
 
-class HeapFixture1: public ::testing::Test { 
+class HeapFixture2: public ::testing::Test {
 
 public:
 
-  crimson::IndIntruHeap<std::shared_ptr<Elem>,
+  crimson::IndIntruSimplePQ<std::shared_ptr<Elem>,
 			Elem,
 			&Elem::heap_data,
 			ElemCompare> heap;
@@ -87,11 +87,11 @@ public:
   void TearDown() { 
     // nothing to do
   }
-}; // class HeapFixture1
+}; // class HeapFixture2
 
 
-TEST(IndIntruHeap, shared_ptr) {
-  crimson::IndIntruHeap<std::shared_ptr<Elem>,
+TEST(IndIntruSimplePQ, shared_ptr) {
+  crimson::IndIntruSimplePQ<std::shared_ptr<Elem>,
 			Elem,
 			&Elem::heap_data,
 			ElemCompare> heap;
@@ -133,8 +133,8 @@ TEST(IndIntruHeap, shared_ptr) {
 }
 
 
-TEST(IndIntruHeap, unique_ptr) {
-  crimson::IndIntruHeap<std::unique_ptr<Elem>,
+TEST(IndIntruSimplePQ, unique_ptr) {
+  crimson::IndIntruSimplePQ<std::unique_ptr<Elem>,
 			Elem,
 			&Elem::heap_data,
 			ElemCompare> heap;
@@ -174,8 +174,8 @@ TEST(IndIntruHeap, unique_ptr) {
 }
 
 
-TEST(IndIntruHeap, regular_ptr) {
-  crimson::IndIntruHeap<Elem*, Elem, &Elem::heap_data, ElemCompare> heap;
+TEST(IndIntruSimplePQ, regular_ptr) {
+  crimson::IndIntruSimplePQ<Elem*, Elem, &Elem::heap_data, ElemCompare> heap;
 
   EXPECT_TRUE(heap.empty());
 
@@ -220,8 +220,8 @@ TEST(IndIntruHeap, regular_ptr) {
 }
 
 
-TEST(IndIntruHeap, demote) {
-  crimson::IndIntruHeap<std::unique_ptr<Elem>,
+TEST(IndIntruSimplePQ, demote) {
+  crimson::IndIntruSimplePQ<std::unique_ptr<Elem>,
 			Elem,
 			&Elem::heap_data,
 			ElemCompare> heap;
@@ -250,8 +250,8 @@ TEST(IndIntruHeap, demote) {
 }
 
 
-TEST(IndIntruHeap, demote_not) {
-  crimson::IndIntruHeap<std::unique_ptr<Elem>,
+TEST(IndIntruSimplePQ, demote_not) {
+  crimson::IndIntruSimplePQ<std::unique_ptr<Elem>,
 			Elem,
 			&Elem::heap_data,
 			ElemCompare> heap;
@@ -276,8 +276,8 @@ TEST(IndIntruHeap, demote_not) {
 }
 
 
-TEST(IndIntruHeap, promote_and_demote) {
-  crimson::IndIntruHeap<std::shared_ptr<Elem>,
+TEST(IndIntruSimplePQ, promote_and_demote) {
+  crimson::IndIntruSimplePQ<std::shared_ptr<Elem>,
 			Elem,
 			&Elem::heap_data,
 			ElemCompare> heap;
@@ -316,8 +316,8 @@ TEST(IndIntruHeap, promote_and_demote) {
 }
 
 
-TEST(IndIntruHeap, adjust) {
-  crimson::IndIntruHeap<std::shared_ptr<Elem>,
+TEST(IndIntruSimplePQ, adjust) {
+  crimson::IndIntruSimplePQ<std::shared_ptr<Elem>,
 			Elem,
 			&Elem::heap_data,
 			ElemCompare> heap;
@@ -360,9 +360,9 @@ TEST(IndIntruHeap, adjust) {
 }
 
 
-TEST_F(HeapFixture1, shared_data) {
+TEST_F(HeapFixture2, shared_data) {
 
-  crimson::IndIntruHeap<std::shared_ptr<Elem>,Elem,&Elem::heap_data_alt,ElemCompareAlt> heap2;
+  crimson::IndIntruSimplePQ<std::shared_ptr<Elem>,Elem,&Elem::heap_data_alt,ElemCompareAlt> heap2;
 
   heap2.push(data1);
   heap2.push(data2);
@@ -406,7 +406,7 @@ TEST_F(HeapFixture1, shared_data) {
 }
 
 
-TEST_F(HeapFixture1, iterator_basics) {
+TEST_F(HeapFixture2, iterator_basics) {
   {
     uint count = 0;
     for(auto i = heap.begin(); i != heap.end(); ++i) {
@@ -417,7 +417,7 @@ TEST_F(HeapFixture1, iterator_basics) {
   }
 
   auto i1 = heap.begin();
-  
+
   EXPECT_EQ(-12, i1->data) <<
     "first member with * operator must be smallest";
 
@@ -449,7 +449,7 @@ TEST_F(HeapFixture1, iterator_basics) {
 }
 
 
-TEST_F(HeapFixture1, const_iterator_basics) {
+TEST_F(HeapFixture2, const_iterator_basics) {
   const auto& cheap = heap;
 
   {
@@ -462,7 +462,7 @@ TEST_F(HeapFixture1, const_iterator_basics) {
   }
 
   auto i1 = heap.cbegin();
-  
+
   EXPECT_EQ(-12, i1->data) <<
     "first member with * operator must be smallest";
 
@@ -494,7 +494,7 @@ TEST_F(HeapFixture1, const_iterator_basics) {
 }
 
 
-TEST_F(HeapFixture1, iterator_find_rfind) {
+TEST_F(HeapFixture2, iterator_find_rfind) {
   {
     auto it1 = heap.find(data7);
     EXPECT_NE(heap.end(), it1) << "find for included element should succeed";
@@ -521,7 +521,7 @@ TEST_F(HeapFixture1, iterator_find_rfind) {
 }
 
 
-TEST_F(HeapFixture1, iterator_remove) {
+TEST_F(HeapFixture2, iterator_remove) {
   auto it1 = heap.find(data7);
   EXPECT_NE(heap.end(), it1) << "find for included element should succeed";
 
@@ -551,7 +551,7 @@ TEST_F(HeapFixture1, iterator_remove) {
 }
 
 
-TEST_F(HeapFixture1, four_tops) {
+TEST_F(HeapFixture2, four_tops) {
   Elem& top1 = heap.top();
   EXPECT_EQ(-12, top1.data);
 

@@ -23,7 +23,7 @@ class Test1 {
 
 public:
 
-    crimson::IndIntruHeapData heap_data;
+    crimson::IndIntruData heap_data;
 
     Test1(int _data) : data(_data) {}
 
