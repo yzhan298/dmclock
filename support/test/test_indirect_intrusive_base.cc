@@ -17,8 +17,8 @@
 struct Elem {
   int data;
 
-  crimson::IndIntruData heap_data;
-  crimson::IndIntruData heap_data_alt;
+  crimson::IndIntruHeapData heap_data;
+  crimson::IndIntruHeapData heap_data_alt;
 
   Elem(int _data) : data(_data) { }
 
@@ -29,13 +29,22 @@ struct Elem {
 };
 
 
+// sorted low to high
+struct ElemCompare {
+  bool operator()(const Elem& d1, const Elem& d2) {
+    return d1.data < d2.data;
+  }
+};
+
+
 class HeapFixture3: public ::testing::Test {
 
 public:
 
   crimson::IndIntruBase<std::shared_ptr<Elem>,
 			Elem,
-			&Elem::heap_data> heap;
+			&Elem::heap_data,
+			ElemCompare> heap;
 
   std::shared_ptr<Elem> data1, data2, data3, data4, data5, data6, data7;
 
@@ -66,7 +75,8 @@ public:
 TEST(IndIntruBase, shared_ptr) {
   crimson::IndIntruBase<std::shared_ptr<Elem>,
 			Elem,
-			&Elem::heap_data> heap;
+			&Elem::heap_data,
+			ElemCompare> heap;
 
   EXPECT_TRUE(heap.empty());
 
@@ -106,7 +116,8 @@ TEST(IndIntruBase, shared_ptr) {
 TEST(IndIntruBase, unique_ptr) {
   crimson::IndIntruBase<std::unique_ptr<Elem>,
 			Elem,
-			&Elem::heap_data> heap;
+			&Elem::heap_data,
+			ElemCompare> heap;
 
   EXPECT_TRUE(heap.empty());
 
@@ -143,7 +154,7 @@ TEST(IndIntruBase, unique_ptr) {
 
 
 TEST(IndIntruBase, regular_ptr) {
-  crimson::IndIntruBase<Elem*, Elem, &Elem::heap_data> heap;
+  crimson::IndIntruBase<Elem*, Elem, &Elem::heap_data, ElemCompare> heap;
 
   EXPECT_TRUE(heap.empty());
 

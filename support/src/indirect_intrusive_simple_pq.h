@@ -13,18 +13,12 @@
 
 namespace crimson {
 
-  template<typename I, typename T, IndIntruData T::*heap_info, typename C>
-  class IndIntruSimplePQ : public IndIntruBase <I, T, heap_info>  {
-    using super = IndIntruBase <I, T, heap_info>;
-
-    static_assert(
-      std::is_same< bool,
-      typename std::result_of<C(const T&, const T&)>::type >::value,
-      "class C must define operator() to take two const T& and return a bool");
-
+  template<typename I, typename T, IndIntruHeapData T::*heap_info, typename C>
+  class IndIntruSimplePQ : public IndIntruBase <I, T, heap_info, C>  {
+    using super = IndIntruBase <I, T, heap_info, C>;
 
   protected:
-    using index_t = IndIntruData;
+    using index_t = IndIntruHeapData;
 
     C               comparator;
     T               *dummy_ref;
@@ -48,6 +42,9 @@ namespace crimson {
       // empty
     }
 
+    void pop() {
+      remove((index_t)0);
+    }
 
     void push(I&& item) {
       super::push(std::move(item));
@@ -84,10 +81,12 @@ namespace crimson {
 
     void remove(typename super::Iterator& i) {
       super::remove(i);
+      adjust(*dummy_ref);
     }
 
     void remove(const I& item) {
       super::remove(item);
+      adjust(*dummy_ref);
     }
 
   protected:

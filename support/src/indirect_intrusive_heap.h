@@ -13,30 +13,12 @@
 
 namespace crimson {
 
-  /* T is the ultimate data that's being stored in the heap, although
-   *   through indirection.
-   *
-   * I is the indirect type that will actually be stored in the heap
-   *   and that must allow dereferencing (via operator*) to yield a
-   *   T&.
-   *
-   * C is a functor when given two T&'s will return true if the first
-   *   must precede the second.
-   *
-   * heap_info is a data member pointer as to where the heap data in T
-   * is stored.
-   */
-  template<typename I, typename T, IndIntruData T::*heap_info, typename C>
-  class IndIntruHeap : public IndIntruBase <I, T, heap_info> {
-    using super = IndIntruBase <I, T, heap_info>;
-
-    static_assert(
-      std::is_same<bool,
-      typename std::result_of<C(const T&,const T&)>::type>::value,
-      "class C must define operator() to take two const T& and return a bool");
+  template<typename I, typename T, IndIntruHeapData T::*heap_info, typename C>
+  class IndIntruHeap : public IndIntruBase <I, T, heap_info, C> {
+    using super = IndIntruBase <I, T, heap_info, C>;
 
   protected:
-    using index_t = IndIntruData;
+    using index_t = IndIntruHeapData;
 
     C              comparator;
 
@@ -54,6 +36,9 @@ namespace crimson {
       // empty
     }
 
+    void pop() {
+      remove((index_t)0);
+    }
 
     void push(I&& item) {
       super::push(std::move(item));
@@ -78,11 +63,13 @@ namespace crimson {
     }
 
     void remove(typename super::Iterator& i) {
-      super::remove(i);
+      index_t _i = super::remove(i);
+      sift_down(_i);
     }
 
     void remove(const I& item) {
-      super::remove(item);
+      size_t i = super::remove(item);
+      sift_down(i);
     }
 
     ~IndIntruHeap() {
@@ -91,7 +78,6 @@ namespace crimson {
 
   protected:
 
-    using super::remove;
     void remove(index_t i) {
       super::remove(i);
       sift_down(i);
@@ -168,5 +154,6 @@ namespace crimson {
 	}
       }
     } // sift
+
   }; // class IndIntruHeap
 } // namespace crimson

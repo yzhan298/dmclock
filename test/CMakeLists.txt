@@ -8,9 +8,9 @@ include_directories(${BOOST_INCLUDE_DIR})
 
 set(support_srcs ../sim/src/test_dmclock.cc)
 set(test_srcs
-#  test_test_client.cc
+  test_test_client.cc
   test_dmclock_server.cc
-#  test_dmclock_client.cc
+  test_dmclock_client.cc
   )
 
 set_source_files_properties(${core_srcs} ${test_srcs}

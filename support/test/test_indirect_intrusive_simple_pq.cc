@@ -17,8 +17,8 @@
 struct Elem {
   int data;
 
-  crimson::IndIntruData heap_data;
-  crimson::IndIntruData heap_data_alt;
+  crimson::IndIntruHeapData heap_data;
+  crimson::IndIntruHeapData heap_data_alt;
 
   Elem(int _data) : data(_data) { }
 

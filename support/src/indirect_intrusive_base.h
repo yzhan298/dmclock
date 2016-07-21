@@ -18,7 +18,7 @@
 
 
 namespace crimson {
-  using IndIntruData = size_t;
+  using IndIntruHeapData = size_t;
 
   /* T is the ultimate data that's being stored in the heap, although
    *   through indirection.
@@ -27,29 +27,33 @@ namespace crimson {
    *   and that must allow dereferencing (via operator*) to yield a
    *   T&.
    *
-   * Cs is/are functor(s) when given two T&'s will return true if the first
+   * C is functor when given two T&'s will return true if the first
    *   must precede the second.
    *
    * heap_info is a data member pointer as to where the heap data in T
    * is stored.
    */
-  template<typename I, typename T, IndIntruData T::*heap_info/*,  typename C*/>
+  template<typename I, typename T, IndIntruHeapData T::*heap_info,  typename C>
   class IndIntruBase {
-
 
     static_assert(
       std::is_same<T,typename std::pointer_traits<I>::element_type>::value,
       "class I must resolve to class T by indirection (pointer dereference)");
 
+    static_assert(
+      std::is_same<bool,
+      typename std::result_of<C(const T&,const T&)>::type>::value,
+      "class C must define operator() to take two const T& and return a bool");
+
   protected:
 
     class Iterator {
-      friend IndIntruBase<I, T, heap_info/*, C*/>;
+      friend IndIntruBase<I, T, heap_info, C>;
 
-      IndIntruBase<I, T, heap_info/*, C*/>& heap;
-      size_t                                index;
+      IndIntruBase<I, T, heap_info, C>& heap;
+      size_t                            index;
 
-      Iterator(IndIntruBase<I, T, heap_info/*, C*/>& _heap, size_t _index) :
+      Iterator(IndIntruBase<I, T, heap_info, C>& _heap, size_t _index) :
 	heap(_heap),
 	index(_index)
       {
@@ -116,12 +120,12 @@ namespace crimson {
 
 
     class ConstIterator {
-      friend IndIntruBase<I, T, heap_info/*, C*/>;
+      friend IndIntruBase<I, T, heap_info, C>;
 
-      const IndIntruBase<I, T, heap_info /*,C*/>& heap;
-      size_t                                      index;
+      const IndIntruBase<I, T, heap_info, C>& heap;
+      size_t                                  index;
 
-      ConstIterator(const IndIntruBase<I, T, heap_info/*, C*/>& _heap, size_t _index) :
+      ConstIterator(const IndIntruBase<I, T, heap_info, C>& _heap, size_t _index) :
 	heap(_heap),
 	index(_index)
       {
@@ -177,11 +181,12 @@ namespace crimson {
       const T* operator->() {
 	return &(*heap.data[index]);
       }
+
     }; // class ConstIterator
 
 
   protected:
-    using index_t = IndIntruData;
+    using index_t = IndIntruHeapData;
 
     std::vector<I> data;
     index_t        count;
@@ -195,7 +200,7 @@ namespace crimson {
       // empty
     }
 
-    IndIntruBase(const IndIntruBase<I,T,heap_info>& other) :
+    IndIntruBase(const IndIntruBase<I,T,heap_info, C>& other) :
       count(other.count)
     {
       for (uint i = 0; i < other.count; ++i) {
@@ -275,7 +280,7 @@ namespace crimson {
     }
 
     // queue methods
-    virtual void push(I&& item) {
+    void push(I&& item) {
       index_t i = count++;
       intru_data_of(item) = i;
       data.emplace_back(std::move(item));
@@ -290,24 +295,19 @@ namespace crimson {
       remove((index_t)0);
     }
 
-    void remove(Iterator& i) {
-      remove(i.index);
+    size_t remove(Iterator& i) {
+      size_t _index = i.index;
+      remove(_index);
       i = end();
+      return _index;
     }
 
-    void remove(const I& item) {
+    size_t remove(const I& item) {
       index_t i = (*item).*heap_info;
       remove(i);
+      return i;
     }
 
-    //  virtual methods
-    virtual void promote(T& item) {};
-
-    virtual void demote(T& item) {};
-
-    virtual void adjust(T& item) {};
-
-    // helper methods
     friend std::ostream& operator<<(std::ostream& out, const IndIntruBase& h) {
       auto i = h.data.cbegin();
       if (i != h.data.cend()) {
@@ -331,7 +331,7 @@ namespace crimson {
 		    "cannot call display_sorted when class I is not copy"
 		    " constructible");
 
-      IndIntruBase<I,T,heap_info> copy = *this;
+      IndIntruBase<I,T,heap_info, C> copy = *this;
 
       bool first = true;
       while(!copy.empty()) {
@@ -349,7 +349,7 @@ namespace crimson {
       return out;
     }
 
-    virtual ~IndIntruBase() {
+    ~IndIntruBase() {
       // empty
     };
 
@@ -360,7 +360,7 @@ namespace crimson {
       return (*item).*heap_info;
     }
 
-    virtual void remove(index_t i) {
+    void remove(index_t i) {
       std::swap(data[i], data[--count]);
       intru_data_of(data[i]) = i;
       data.pop_back();
