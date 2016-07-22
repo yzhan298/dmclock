@@ -1,0 +1,362 @@
+
+file_name:heap:configs/dmc_sim_6_100.conf
+    average: 1402.62 nanoseconds per request/response
+    average: 641.17 nanoseconds per request/response
+    average: 4853.69 nanoseconds per request/response
+    average: 687.45 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_6_100.conf
+    average: 1585.15 nanoseconds per request/response
+    average: 629.47 nanoseconds per request/response
+    average: 5380.50 nanoseconds per request/response
+    average: 647.35 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_6_100.conf
+    average: 1948.22 nanoseconds per request/response
+    average: 606.39 nanoseconds per request/response
+    average: 5242.02 nanoseconds per request/response
+    average: 649.78 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_6_100.conf
+    average: 1434.90 nanoseconds per request/response
+    average: 678.45 nanoseconds per request/response
+    average: 4900.45 nanoseconds per request/response
+    average: 707.42 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_6_100.conf
+    average: 1345.25 nanoseconds per request/response
+    average: 718.27 nanoseconds per request/response
+    average: 5211.31 nanoseconds per request/response
+    average: 709.52 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_6_100.conf
+    average: 1259.46 nanoseconds per request/response
+    average: 702.86 nanoseconds per request/response
+    average: 5086.26 nanoseconds per request/response
+    average: 692.28 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_6_100.conf
+    average: 2655.59 nanoseconds per request/response
+    average: 714.58 nanoseconds per request/response
+    average: 5169.15 nanoseconds per request/response
+    average: 717.53 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_6_100.conf
+    average: 1395.84 nanoseconds per request/response
+    average: 666.88 nanoseconds per request/response
+    average: 5210.06 nanoseconds per request/response
+    average: 689.33 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_6_100.conf
+    average: 1230.31 nanoseconds per request/response
+    average: 640.42 nanoseconds per request/response
+    average: 4969.20 nanoseconds per request/response
+    average: 713.54 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_6_100.conf
+    average: 1149.62 nanoseconds per request/response
+    average: 632.19 nanoseconds per request/response
+    average: 4908.89 nanoseconds per request/response
+    average: 667.05 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_6_100.conf
+    average: 1965.54 nanoseconds per request/response
+    average: 757.84 nanoseconds per request/response
+    average: 5383.43 nanoseconds per request/response
+    average: 742.61 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_6_100.conf
+    average: 977.92 nanoseconds per request/response
+    average: 598.77 nanoseconds per request/response
+    average: 6070.70 nanoseconds per request/response
+    average: 584.73 nanoseconds per request/response
+
+file_name:heap:configs/dmc_sim_100_100.conf
+    average: 948.12 nanoseconds per request/response
+    average: 890.72 nanoseconds per request/response
+    average: 4595.22 nanoseconds per request/response
+    average: 1412.33 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_100_100.conf
+    average: 829.81 nanoseconds per request/response
+    average: 719.04 nanoseconds per request/response
+    average: 7064.50 nanoseconds per request/response
+    average: 2158.99 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_100_100.conf
+    average: 850.24 nanoseconds per request/response
+    average: 730.57 nanoseconds per request/response
+    average: 3945.25 nanoseconds per request/response
+    average: 1090.38 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_100_100.conf
+    average: 924.74 nanoseconds per request/response
+    average: 812.79 nanoseconds per request/response
+    average: 7487.34 nanoseconds per request/response
+    average: 2450.29 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_100_100.conf
+    average: 997.46 nanoseconds per request/response
+    average: 809.12 nanoseconds per request/response
+    average: 4191.83 nanoseconds per request/response
+    average: 1226.27 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_100_100.conf
+    average: 857.62 nanoseconds per request/response
+    average: 785.74 nanoseconds per request/response
+    average: 7287.80 nanoseconds per request/response
+    average: 2279.55 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_100_100.conf
+    average: 901.63 nanoseconds per request/response
+    average: 708.82 nanoseconds per request/response
+    average: 3731.84 nanoseconds per request/response
+    average: 1139.04 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_100_100.conf
+    average: 817.67 nanoseconds per request/response
+    average: 868.22 nanoseconds per request/response
+    average: 7994.09 nanoseconds per request/response
+    average: 2571.32 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_100_100.conf
+    average: 950.79 nanoseconds per request/response
+    average: 885.34 nanoseconds per request/response
+    average: 4653.99 nanoseconds per request/response
+    average: 1337.04 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_100_100.conf
+    average: 954.49 nanoseconds per request/response
+    average: 763.14 nanoseconds per request/response
+    average: 7303.25 nanoseconds per request/response
+    average: 2248.57 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_100_100.conf
+    average: 907.32 nanoseconds per request/response
+    average: 737.15 nanoseconds per request/response
+    average: 4018.44 nanoseconds per request/response
+    average: 1186.20 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_100_100.conf
+    average: 612.14 nanoseconds per request/response
+    average: 632.62 nanoseconds per request/response
+    average: 6514.73 nanoseconds per request/response
+    average: 2032.95 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_100_10th.conf
+    average: 969.97 nanoseconds per request/response
+    average: 1123.65 nanoseconds per request/response
+    average: 7153.06 nanoseconds per request/response
+    average: 1029.57 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_100_10th.conf
+    average: 943.41 nanoseconds per request/response
+    average: 701.46 nanoseconds per request/response
+    average: 5810.54 nanoseconds per request/response
+    average: 620.09 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_100_10th.conf
+    average: 1611.00 nanoseconds per request/response
+    average: 677.38 nanoseconds per request/response
+    average: 5266.90 nanoseconds per request/response
+    average: 641.98 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_100_10th.conf
+    average: 1064.42 nanoseconds per request/response
+    average: 739.24 nanoseconds per request/response
+    average: 6021.85 nanoseconds per request/response
+    average: 680.44 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_100_10th.conf
+    average: 863.97 nanoseconds per request/response
+    average: 657.25 nanoseconds per request/response
+    average: 5608.55 nanoseconds per request/response
+    average: 618.64 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_100_10th.conf
+    average: 1425.67 nanoseconds per request/response
+    average: 945.60 nanoseconds per request/response
+    average: 5939.20 nanoseconds per request/response
+    average: 855.87 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_100_10th.conf
+    average: 1886.46 nanoseconds per request/response
+    average: 928.95 nanoseconds per request/response
+    average: 5282.67 nanoseconds per request/response
+    average: 737.41 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_100_10th.conf
+    average: 994.00 nanoseconds per request/response
+    average: 632.99 nanoseconds per request/response
+    average: 5360.79 nanoseconds per request/response
+    average: 620.14 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_100_10th.conf
+    average: 1834.51 nanoseconds per request/response
+    average: 662.61 nanoseconds per request/response
+    average: 5046.59 nanoseconds per request/response
+    average: 657.32 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_100_10th.conf
+    average: 1051.30 nanoseconds per request/response
+    average: 676.71 nanoseconds per request/response
+    average: 5665.73 nanoseconds per request/response
+    average: 616.01 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_100_10th.conf
+    average: 1415.16 nanoseconds per request/response
+    average: 688.71 nanoseconds per request/response
+    average: 5337.19 nanoseconds per request/response
+    average: 648.47 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_100_10th.conf
+    average: 1085.21 nanoseconds per request/response
+    average: 753.04 nanoseconds per request/response
+    average: 5929.86 nanoseconds per request/response
+    average: 694.14 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_10_100.conf
+    average: 420.88 nanoseconds per request/response
+    average: 364.65 nanoseconds per request/response
+    average: 2753.07 nanoseconds per request/response
+    average: 1188.89 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_10_100.conf
+    average: 512.48 nanoseconds per request/response
+    average: 432.19 nanoseconds per request/response
+    average: 9164.46 nanoseconds per request/response
+    average: 3386.21 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_10_100.conf
+    average: 567.28 nanoseconds per request/response
+    average: 452.60 nanoseconds per request/response
+    average: 2964.13 nanoseconds per request/response
+    average: 1343.58 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_10_100.conf
+    average: 774.78 nanoseconds per request/response
+    average: 682.75 nanoseconds per request/response
+    average: 10366.21 nanoseconds per request/response
+    average: 3383.09 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_10_100.conf
+    average: 496.32 nanoseconds per request/response
+    average: 412.30 nanoseconds per request/response
+    average: 3069.75 nanoseconds per request/response
+    average: 1391.60 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_10_100.conf
+    average: 573.88 nanoseconds per request/response
+    average: 512.32 nanoseconds per request/response
+    average: 9375.86 nanoseconds per request/response
+    average: 3302.84 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_10_100.conf
+    average: 594.00 nanoseconds per request/response
+    average: 484.57 nanoseconds per request/response
+    average: 3088.26 nanoseconds per request/response
+    average: 1375.03 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_10_100.conf
+    average: 521.66 nanoseconds per request/response
+    average: 459.19 nanoseconds per request/response
+    average: 9043.87 nanoseconds per request/response
+    average: 3397.88 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_10_100.conf
+    average: 573.83 nanoseconds per request/response
+    average: 448.39 nanoseconds per request/response
+    average: 2986.64 nanoseconds per request/response
+    average: 1257.78 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_10_100.conf
+    average: 489.33 nanoseconds per request/response
+    average: 400.26 nanoseconds per request/response
+    average: 8997.04 nanoseconds per request/response
+    average: 3443.05 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_10_100.conf
+    average: 648.27 nanoseconds per request/response
+    average: 510.80 nanoseconds per request/response
+    average: 3252.81 nanoseconds per request/response
+    average: 1482.71 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_10_100.conf
+    average: 615.27 nanoseconds per request/response
+    average: 593.49 nanoseconds per request/response
+    average: 10550.00 nanoseconds per request/response
+    average: 4414.21 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_6_10.conf
+    average: 2261.06 nanoseconds per request/response
+    average: 461.09 nanoseconds per request/response
+    average: 3556.56 nanoseconds per request/response
+    average: 816.66 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_6_10.conf
+    average: 3214.48 nanoseconds per request/response
+    average: 502.11 nanoseconds per request/response
+    average: 3482.30 nanoseconds per request/response
+    average: 840.86 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_6_10.conf
+    average: 1956.60 nanoseconds per request/response
+    average: 574.52 nanoseconds per request/response
+    average: 3983.79 nanoseconds per request/response
+    average: 1009.40 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_6_10.conf
+    average: 2329.24 nanoseconds per request/response
+    average: 516.59 nanoseconds per request/response
+    average: 3804.19 nanoseconds per request/response
+    average: 860.51 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_6_10.conf
+    average: 2293.50 nanoseconds per request/response
+    average: 584.84 nanoseconds per request/response
+    average: 3827.31 nanoseconds per request/response
+    average: 997.90 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_6_10.conf
+    average: 1782.77 nanoseconds per request/response
+    average: 541.83 nanoseconds per request/response
+    average: 3872.60 nanoseconds per request/response
+    average: 996.20 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_6_10.conf
+    average: 2650.66 nanoseconds per request/response
+    average: 457.03 nanoseconds per request/response
+    average: 3699.67 nanoseconds per request/response
+    average: 824.18 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_6_10.conf
+    average: 3016.89 nanoseconds per request/response
+    average: 546.83 nanoseconds per request/response
+    average: 3332.59 nanoseconds per request/response
+    average: 846.59 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_6_10.conf
+    average: 3049.90 nanoseconds per request/response
+    average: 440.25 nanoseconds per request/response
+    average: 3504.34 nanoseconds per request/response
+    average: 783.91 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_6_10.conf
+    average: 2583.76 nanoseconds per request/response
+    average: 407.29 nanoseconds per request/response
+    average: 3525.58 nanoseconds per request/response
+    average: 782.17 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_6_10.conf
+    average: 2827.57 nanoseconds per request/response
+    average: 446.46 nanoseconds per request/response
+    average: 3629.85 nanoseconds per request/response
+    average: 780.11 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_6_10.conf
+    average: 3036.32 nanoseconds per request/response
+    average: 442.25 nanoseconds per request/response
+    average: 3679.25 nanoseconds per request/response
+    average: 746.31 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_6_6.conf
+    average: 4433.10 nanoseconds per request/response
+    average: 410.50 nanoseconds per request/response
+    average: 2383.48 nanoseconds per request/response
+    average: 1040.50 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_6_6.conf
+    average: 1763.07 nanoseconds per request/response
+    average: 573.80 nanoseconds per request/response
+    average: 2827.38 nanoseconds per request/response
+    average: 1471.48 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_6_6.conf
+    average: 2387.05 nanoseconds per request/response
+    average: 513.01 nanoseconds per request/response
+    average: 2556.92 nanoseconds per request/response
+    average: 1216.07 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_6_6.conf
+    average: 2747.83 nanoseconds per request/response
+    average: 451.24 nanoseconds per request/response
+    average: 2463.63 nanoseconds per request/response
+    average: 1136.43 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_6_6.conf
+    average: 1986.65 nanoseconds per request/response
+    average: 491.99 nanoseconds per request/response
+    average: 2694.97 nanoseconds per request/response
+    average: 1221.66 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_6_6.conf
+    average: 2588.89 nanoseconds per request/response
+    average: 421.96 nanoseconds per request/response
+    average: 2515.59 nanoseconds per request/response
+    average: 1097.95 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_6_6.conf
+    average: 2707.68 nanoseconds per request/response
+    average: 513.24 nanoseconds per request/response
+    average: 2590.99 nanoseconds per request/response
+    average: 1199.21 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_6_6.conf
+    average: 2218.57 nanoseconds per request/response
+    average: 389.20 nanoseconds per request/response
+    average: 2492.56 nanoseconds per request/response
+    average: 1076.15 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_6_6.conf
+    average: 2822.73 nanoseconds per request/response
+    average: 386.51 nanoseconds per request/response
+    average: 2301.15 nanoseconds per request/response
+    average: 1030.99 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_6_6.conf
+    average: 1730.62 nanoseconds per request/response
+    average: 510.11 nanoseconds per request/response
+    average: 2598.20 nanoseconds per request/response
+    average: 1356.30 nanoseconds per request/response
+file_name:heap:configs/dmc_sim_6_6.conf
+    average: 2291.55 nanoseconds per request/response
+    average: 507.91 nanoseconds per request/response
+    average: 2758.17 nanoseconds per request/response
+    average: 1287.62 nanoseconds per request/response
+file_name:pq:configs/dmc_sim_6_6.conf
+    average: 2901.89 nanoseconds per request/response
+    average: 469.06 nanoseconds per request/response
+    average: 2513.77 nanoseconds per request/response
+    average: 1252.84 nanoseconds per request/response

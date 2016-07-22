@@ -16,10 +16,10 @@ To turn on profiling, run cmake with an additional:
 
     -DPROFILE=yes
     
-To compare current heap implementation with a simple heap (that uses linear search),
+To use a simple linear search-based internal priority queue,
 run cmake with an additional:
 
-    -DUSE_SIMPLE_HEAP=yes
+    -DUSE_SIMPLE_PQ=yes
 
 ## Running make
 
