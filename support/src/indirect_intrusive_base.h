@@ -110,6 +110,10 @@ namespace crimson {
 	return &(*heap.data[index]);
       }
 
+      const size_t cur_index() const{
+	return index;
+      }
+
 #if 0
       // the item this iterator refers to
       void increase() {
@@ -182,6 +186,10 @@ namespace crimson {
 	return &(*heap.data[index]);
       }
 
+      const size_t cur_index() const {
+	return index;
+      }
+
     }; // class ConstIterator
 
 
@@ -210,7 +218,7 @@ namespace crimson {
 
     bool empty() const { return 0 == count; }
 
-    size_t size() const { return count; }
+    index_t size() const { return count; }
 
     T& top() { return *data[0]; }
 
@@ -295,17 +303,13 @@ namespace crimson {
       remove((index_t)0);
     }
 
-    size_t remove(Iterator& i) {
-      size_t _index = i.index;
-      remove(_index);
+    void remove(Iterator& i) {
+      remove(i.index);
       i = end();
-      return _index;
     }
 
-    size_t remove(const I& item) {
-      index_t i = (*item).*heap_info;
-      remove(i);
-      return i;
+    void remove(const I& item) {
+      remove((*item).*heap_info);
     }
 
     friend std::ostream& operator<<(std::ostream& out, const IndIntruBase& h) {

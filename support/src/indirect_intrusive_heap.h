@@ -63,13 +63,12 @@ namespace crimson {
     }
 
     void remove(typename super::Iterator& i) {
-      index_t _i = super::remove(i);
-      sift_down(_i);
+      remove(i.cur_index());
+      i = super::end();
     }
 
     void remove(const I& item) {
-      size_t i = super::remove(item);
-      sift_down(i);
+      remove((*item).*heap_info);
     }
 
     ~IndIntruHeap() {

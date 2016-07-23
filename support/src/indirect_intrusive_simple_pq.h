@@ -21,23 +21,17 @@ namespace crimson {
     using index_t = IndIntruHeapData;
 
     C               comparator;
-    T               *dummy_ref;
-    index_t         min_index;
 
   public:
 
     IndIntruSimplePQ() :
-      super(),
-      dummy_ref(NULL),
-      min_index(0)
+      super()
     {
       // empty
     }
 
     IndIntruSimplePQ(const IndIntruSimplePQ < I, T, heap_info, C > &other) :
-      super(other),
-      dummy_ref(NULL),
-      min_index(other.min_index)
+      super(other)
     {
       // empty
     }
@@ -48,7 +42,7 @@ namespace crimson {
 
     void push(I&& item) {
       super::push(std::move(item));
-      adjust(*dummy_ref);
+      go_backward(super::count - 1);
     }
 
     void push(const I& item) {
@@ -57,43 +51,72 @@ namespace crimson {
     }
 
     void promote(T& item) {
-      adjust(item);
+      go_backward(item.*heap_info);
     }
 
     void demote(T& item) {
-      adjust(item);
+      go_forward(item.*heap_info);
     }
 
-    // ignore the parameter
-    void adjust(T& ) {
-      min_index = 0;
-      for (index_t i = 1 ; i < super::count; i++){
-	if (comparator(*super::data[i], *super::data[min_index])){
-	  min_index = i;
+    void adjust(T& item) {
+      index_t i = item.*heap_info;
+      if (0 == i){
+	go_forward(i);
+      } else if ((super::count - 1) == i){
+	go_backward(i);
+      } else {
+	if (comparator(*super::data[i] , *super::data[i-1])){
+	  go_backward(i);
+	} else {
+	  go_forward(i);
 	}
-      }
-      if (min_index) {
-	std::swap(super::data[0], super::data[min_index]);
-	super::intru_data_of(super::data[0]) = 0;
-	super::intru_data_of(super::data[min_index]) = min_index;
       }
     }
 
     void remove(typename super::Iterator& i) {
-      super::remove(i);
-      adjust(*dummy_ref);
+      remove(i.cur_index());
+      i = super::end();
     }
 
     void remove(const I& item) {
-      super::remove(item);
-      adjust(*dummy_ref);
+      remove((*item).*heap_info);
     }
 
   protected:
 
     void remove(index_t i) {
-      super::remove(i);
-      adjust(*dummy_ref);
+      while (super::count > 0
+	  && i < (super::count - 1)){
+	std::swap(super::data[i], super::data[i + 1]);
+	super::intru_data_of(super::data[i]) = i;
+	super::intru_data_of(super::data[i + 1]) = i + 1;
+	++i;
+      }
+      super::data.pop_back();
+      super::count--;
+    }
+
+    // [i+1..count] is already sorted.
+    void go_forward (index_t i) {
+      while ((super::count > 0 &&
+	  i < (super::count - 1) &&
+	  ! comparator(*super::data[i], *super::data[i+1]))) {
+	std::swap(super::data[i], super::data[i+1]);
+	super::intru_data_of(super::data[i]) = i;
+	super::intru_data_of(super::data[i+1]) = i + 1;
+	++i;;
+      }
+    }
+
+    // [0..i-1] is already sorted.
+    void go_backward (index_t i) {
+      while ((i > 0) &&
+	  comparator(*super::data[i], *super::data[i-1])) {
+	std::swap(super::data[i], super::data[i-1]);
+	super::intru_data_of(super::data[i]) = i;
+	super::intru_data_of(super::data[i - 1]) = i - 1;
+	--i;
+      }
     }
 
   }; // class IndIntruSimplePQ
