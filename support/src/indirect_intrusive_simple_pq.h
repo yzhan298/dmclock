@@ -85,12 +85,13 @@ namespace crimson {
   protected:
 
     void remove(index_t i) {
-      while (super::count > 0
-	  && i < (super::count - 1)){
-	std::swap(super::data[i], super::data[i + 1]);
-	super::intru_data_of(super::data[i]) = i;
-	super::intru_data_of(super::data[i + 1]) = i + 1;
-	++i;
+      if (super::count > 1) {
+	while (i < (super::count - 1)){
+	  std::swap(super::data[i], super::data[i + 1]);
+	  super::intru_data_of(super::data[i]) = i;
+	  super::intru_data_of(super::data[i + 1]) = i + 1;
+	  ++i;
+	}
       }
       super::data.pop_back();
       super::count--;
@@ -98,13 +99,14 @@ namespace crimson {
 
     // [i+1..count] is already sorted.
     void go_forward (index_t i) {
-      while ((super::count > 0 &&
-	  i < (super::count - 1) &&
-	  ! comparator(*super::data[i], *super::data[i+1]))) {
-	std::swap(super::data[i], super::data[i+1]);
-	super::intru_data_of(super::data[i]) = i;
-	super::intru_data_of(super::data[i+1]) = i + 1;
-	++i;;
+      if (super::count > 1) {
+	while (i < (super::count - 1) &&
+	    !comparator(*super::data[i], *super::data[i+1])) {
+	  std::swap(super::data[i], super::data[i+1]);
+	  super::intru_data_of(super::data[i]) = i;
+	  super::intru_data_of(super::data[i+1]) = i + 1;
+	  ++i;;
+	}
       }
     }
 
