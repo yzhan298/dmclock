@@ -20,7 +20,7 @@
 #ifdef HAVE_SYS_PRCTL_H
 #include <iostream>
 #include <sys/prctl.h>
-#include "common/errno.h"
+// #include "common/errno.h"
 
 struct PrCtl {
   int saved_state = -1;
