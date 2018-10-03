@@ -43,8 +43,8 @@
 
 #include "../support/src/indirect_intrusive_heap.h"
 #include "../support/src/run_every.h"
-#include "../support/src/dmclock_util.h"
-#include "../support/src/dmclock_recs.h"
+#include "dmclock_util.h"
+#include "dmclock_recs.h"
 
 #ifdef PROFILE
 #include "../support/src/profile.h"
