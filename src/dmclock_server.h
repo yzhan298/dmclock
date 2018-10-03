@@ -41,13 +41,13 @@
 
 #include <boost/variant.hpp>
 
-#include "indirect_intrusive_heap.h"
-#include "run_every.h"
-#include "dmclock_util.h"
-#include "dmclock_recs.h"
+#include "../support/src/indirect_intrusive_heap.h"
+#include "../support/srcrun_every.h"
+#include "../support/srcdmclock_util.h"
+#include "../support/srcdmclock_recs.h"
 
 #ifdef PROFILE
-#include "profile.h"
+#include "../support/srcprofile.h"
 #endif
 
 
