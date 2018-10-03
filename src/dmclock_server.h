@@ -42,12 +42,12 @@
 #include <boost/variant.hpp>
 
 #include "../support/src/indirect_intrusive_heap.h"
-#include "../support/srcrun_every.h"
-#include "../support/srcdmclock_util.h"
-#include "../support/srcdmclock_recs.h"
+#include "../support/src/run_every.h"
+#include "../support/src/dmclock_util.h"
+#include "../support/src/dmclock_recs.h"
 
 #ifdef PROFILE
-#include "../support/srcprofile.h"
+#include "../support/src/profile.h"
 #endif
 
 
