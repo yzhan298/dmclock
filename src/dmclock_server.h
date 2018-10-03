@@ -65,6 +65,27 @@ namespace crimson {
       std::numeric_limits<double>::lowest();
     constexpr uint tag_modulo = 1000000;
 
+    enum class AtLimit {
+      // requests are delayed until the limit is restored
+      Wait,
+      // requests are allowed to exceed their limit, if all other reservations
+      // are met and below their limits
+      Allow,
+      // if an incoming request would exceed its limit, add_request() will
+      // reject it with EAGAIN instead of adding it to the queue. cannot be used
+      // with DelayedTagCalc, because add_request() needs an accurate tag
+      Reject,
+    };
+
+    // when AtLimit::Reject is used, only start rejecting requests once their
+    // limit is above this threshold. requests under this threshold are
+    // enqueued and processed like AtLimit::Wait
+    using RejectThreshold = Time;
+
+    // the AtLimit constructor parameter can either accept AtLimit or a value
+    // for RejectThreshold (which implies AtLimit::Reject)
+    using AtLimitParam = boost::variant<AtLimit, RejectThreshold>;
+
     struct ClientInfo {
       double reservation;  // minimum
       double weight;       // proportional
@@ -108,17 +129,21 @@ namespace crimson {
       double   reservation;
       double   proportion;
       double   limit;
+      uint32_t delta;
+      uint32_t rho;
       Cost     cost;
       bool     ready; // true when within limit
       Time     arrival;
 
       RequestTag(const RequestTag& prev_tag,
 		 const ClientInfo& client,
-		 const uint32_t delta,
-		 const uint32_t rho,
+		 const uint32_t _delta,
+		 const uint32_t _rho,
 		 const Time time,
 		 const Cost _cost = 1u,
 		 const double anticipation_timeout = 0.0) :
+	delta(_delta),
+	rho(_rho),
 	cost(_cost),
 	ready(false),
 	arrival(time)
@@ -162,10 +187,14 @@ namespace crimson {
 
       RequestTag(const double _res, const double _prop, const double _lim,
 		 const Time _arrival,
+		 const uint32_t _delta = 0,
+		 const uint32_t _rho = 0,
 		 const Cost _cost = 1u) :
 	reservation(_res),
 	proportion(_prop),
 	limit(_lim),
+	delta(_delta),
+	rho(_rho),
 	cost(_cost),
 	ready(false),
 	arrival(_arrival)
@@ -178,6 +207,8 @@ namespace crimson {
 	reservation(other.reservation),
 	proportion(other.proportion),
 	limit(other.limit),
+	delta(other.delta),
+	rho(other.rho),
 	cost(other.cost),
 	ready(other.ready),
 	arrival(other.arrival)
@@ -294,6 +325,18 @@ namespace crimson {
 	}
       }; // class ClientReq
 
+      struct RequestMeta {
+        C          client_id;
+        RequestTag tag;
+
+        RequestMeta(const C&  _client_id, const RequestTag& _tag) :
+          client_id(_client_id),
+          tag(_tag)
+        {
+          // empty
+        }
+      };
+
     public:
 
       // NOTE: ClientRec is in the "public" section for compatibility
@@ -359,10 +402,8 @@ namespace crimson {
 	  last_tick = _tick;
 	}
 
-	inline void add_request(const RequestTag& tag,
-				const C&          client_id,
-				RequestRef&&      request) {
-	  requests.emplace_back(ClientReq(tag, client_id, std::move(request)));
+	inline void add_request(const RequestTag& tag, RequestRef&& request) {
+	  requests.emplace_back(tag, client, std::move(request));
 	}
 
 	inline const ClientReq& next_request() const {
@@ -746,10 +787,9 @@ namespace crimson {
 				    true>,
 		      B> ready_heap;
 
-      // if all reservations are met and all other requestes are under
-      // limit, this will allow the request next in terms of
-      // proportion to still get issued
-      bool             allow_limit_break;
+      AtLimit          at_limit;
+      RejectThreshold  reject_threshold = 0;
+
       double           anticipation_timeout;
 
       std::atomic_bool finishing;
@@ -771,6 +811,13 @@ namespace crimson {
 
       std::unique_ptr<RunEvery> cleaning_job;
 
+      // helper function to return the value of a variant if it matches the
+      // given type T, or a default value of T otherwise
+      template <typename T, typename Variant>
+      static T get_or_default(const Variant& param, T default_value) {
+	const T *p = boost::get<T>(&param);
+	return p ? *p : default_value;
+      }
 
       // COMMON constructor that others feed into; we can accept three
       // different variations of durations
@@ -779,10 +826,11 @@ namespace crimson {
 			std::chrono::duration<Rep,Per> _idle_age,
 			std::chrono::duration<Rep,Per> _erase_age,
 			std::chrono::duration<Rep,Per> _check_time,
-			bool _allow_limit_break,
+			AtLimitParam at_limit_param,
 			double _anticipation_timeout) :
 	client_info_f(_client_info_f),
-	allow_limit_break(_allow_limit_break),
+	at_limit(get_or_default<AtLimit>(at_limit_param, AtLimit::Reject)),
+	reject_threshold(get_or_default<RejectThreshold>(at_limit_param, 0)),
 	anticipation_timeout(_anticipation_timeout),
 	finishing(false),
 	idle_age(std::chrono::duration_cast<Duration>(_idle_age)),
@@ -791,6 +839,8 @@ namespace crimson {
       {
 	assert(_erase_age >= _idle_age);
 	assert(_check_time < _idle_age);
+	// AtLimit::Reject depends on ImmediateTagCalc
+	assert(at_limit != AtLimit::Reject || !IsDelayed);
 	cleaning_job =
 	  std::unique_ptr<RunEvery>(
 	    new RunEvery(check_time,
@@ -842,37 +892,33 @@ namespace crimson {
 	return tag;
       }
 
-      // data_mtx must be held by caller
-      void do_add_request(RequestRef&& request,
-			  const C& client_id,
-			  const ReqParams& req_params,
-			  const Time time,
-			  const Cost cost = 1u) {
+      // data_mtx must be held by caller. returns 0 on success. when using
+      // AtLimit::Reject, requests that would exceed their limit are rejected
+      // with EAGAIN, and the queue will not take ownership of the given
+      // 'request' argument
+      int do_add_request(RequestRef&& request,
+			 const C& client_id,
+			 const ReqParams& req_params,
+			 const Time time,
+			 const Cost cost = 1u) {
 	++tick;
 
-	// this pointer will help us create a reference to a shared
-	// pointer, no matter which of two codepaths we take
-	ClientRec* temp_client;
-
-	auto client_it = client_map.find(client_id);
-	if (client_map.end() != client_it) {
-	  temp_client = &(*client_it->second); // address of obj of shared_ptr
-	} else {
+        auto insert = client_map.emplace(client_id, ClientRecRef{});
+        if (insert.second) {
+          // new client entry
 	  const ClientInfo* info = client_info_f(client_id);
-	  ClientRecRef client_rec =
-	    std::make_shared<ClientRec>(client_id, info, tick);
+	  auto client_rec = std::make_shared<ClientRec>(client_id, info, tick);
 	  resv_heap.push(client_rec);
 #if USE_PROP_HEAP
 	  prop_heap.push(client_rec);
 #endif
 	  limit_heap.push(client_rec);
 	  ready_heap.push(client_rec);
-	  client_map[client_id] = client_rec;
-	  temp_client = &(*client_rec); // address of obj of shared_ptr
+	  insert.first->second = std::move(client_rec);
 	}
 
 	// for convenience, we'll create a reference to the shared pointer
-	ClientRec& client = *temp_client;
+	ClientRec& client = *insert.first->second;
 
 	if (client.idle) {
 	  // We need to do an adjustment so that idle clients compete
@@ -926,7 +972,13 @@ namespace crimson {
 
 	RequestTag tag = initial_tag(TagCalc{}, client, req_params, time, cost);
 
-	client.add_request(tag, client.client, std::move(request));
+	if (at_limit == AtLimit::Reject &&
+            tag.limit > time + reject_threshold) {
+	  // if the client is over its limit, reject it here
+	  return EAGAIN;
+	}
+
+	client.add_request(tag, std::move(request));
 	if (1 == client.requests.size()) {
 	  // NB: can the following 4 calls to adjust be changed
 	  // promote? Can adding a request ever demote a client in the
@@ -948,7 +1000,8 @@ namespace crimson {
 #if USE_PROP_HEAP
 	prop_heap.adjust(client);
 #endif
-      } // add_request
+	return 0;
+      } // do_add_request
 
       // data_mtx must be held by caller
       void update_next_tag(DelayedTagCalc delayed, ClientRec& top,
@@ -976,7 +1029,7 @@ namespace crimson {
       // data_mtx should be held when called; top of heap should have
       // a ready request
       template<typename C1, IndIntruHeapData ClientRec::*C2, typename C3>
-      void pop_process_request(IndIntruHeap<C1, ClientRec, C2, C3, B>& heap,
+      RequestTag pop_process_request(IndIntruHeap<C1, ClientRec, C2, C3, B>& heap,
 			       std::function<void(const C& client,
 						  const Cost cost,
 						  RequestRef& request)> process) {
@@ -1001,37 +1054,45 @@ namespace crimson {
 
 	// process
 	process(top.client, request_cost, request);
+
+	return tag;
       } // pop_process_request
 
 
       // data_mtx must be held by caller
-      void reduce_reservation_tags(DelayedTagCalc delayed, ClientRec& client) {
+      void reduce_reservation_tags(DelayedTagCalc delayed, ClientRec& client,
+                                   const RequestTag& tag) {
 	if (!client.requests.empty()) {
 	  // only maintain a tag for the first request
 	  auto& r = client.requests.front();
-	  r.tag.reservation -= client.info->reservation_inv;
+	  r.tag.reservation -=
+	    client.info->reservation_inv * std::max(uint32_t(1), tag.rho);
 	}
       }
 
       // data_mtx should be held when called
-      void reduce_reservation_tags(ImmediateTagCalc imm, ClientRec& client) {
+      void reduce_reservation_tags(ImmediateTagCalc imm, ClientRec& client,
+                                   const RequestTag& tag) {
+        double res_offset =
+          client.info->reservation_inv * std::max(uint32_t(1), tag.rho);
 	for (auto& r : client.requests) {
-	  r.tag.reservation -= client.info->reservation_inv;
+	  r.tag.reservation -= res_offset;
 	}
       }
 
       // data_mtx should be held when called
-      void reduce_reservation_tags(const C& client_id) {
+      void reduce_reservation_tags(const C& client_id, const RequestTag& tag) {
 	auto client_it = client_map.find(client_id);
 
 	// means the client was cleaned from map; should never happen
 	// as long as cleaning times are long enough
 	assert(client_map.end() != client_it);
 	ClientRec& client = *client_it->second;
-	reduce_reservation_tags(TagCalc{}, client);
+	reduce_reservation_tags(TagCalc{}, client, tag);
 
 	// don't forget to update previous tag
-	client.prev_tag.reservation -= client.info->reservation_inv;
+	client.prev_tag.reservation -=
+	  client.info->reservation_inv * std::max(uint32_t(1), tag.rho);
 	resv_heap.promote(client);
       }
 
@@ -1079,7 +1140,7 @@ namespace crimson {
 	// proportion/weight, and if we allow limit break, try to
 	// schedule something with the lowest proportion tag or
 	// alternatively lowest reservation tag.
-	if (allow_limit_break) {
+	if (at_limit == AtLimit::Allow) {
 	  if (readys.has_request() &&
 	      readys.next_request().tag.proportion < max_tag) {
 	    return NextReq(HeapId::ready);
@@ -1187,7 +1248,7 @@ namespace crimson {
     }; // class PriorityQueueBase
 
 
-    template<typename C, typename R, bool IsDelayed=true, bool U1=false, uint B=2>
+    template<typename C, typename R, bool IsDelayed=false, bool U1=false, uint B=2>
     class PullPriorityQueue : public PriorityQueueBase<C,R,IsDelayed,U1,B> {
       using super = PriorityQueueBase<C,R,IsDelayed,U1,B>;
 
@@ -1227,11 +1288,11 @@ namespace crimson {
 			std::chrono::duration<Rep,Per> _idle_age,
 			std::chrono::duration<Rep,Per> _erase_age,
 			std::chrono::duration<Rep,Per> _check_time,
-			bool _allow_limit_break = false,
+			AtLimitParam at_limit_param = AtLimit::Wait,
 			double _anticipation_timeout = 0.0) :
 	super(_client_info_f,
 	      _idle_age, _erase_age, _check_time,
-	      _allow_limit_break, _anticipation_timeout)
+	      at_limit_param, _anticipation_timeout)
       {
 	// empty
       }
@@ -1239,91 +1300,92 @@ namespace crimson {
 
       // pull convenience constructor
       PullPriorityQueue(typename super::ClientInfoFunc _client_info_f,
-			bool _allow_limit_break = false,
+			AtLimitParam at_limit_param = AtLimit::Wait,
 			double _anticipation_timeout = 0.0) :
 	PullPriorityQueue(_client_info_f,
 			  std::chrono::minutes(10),
 			  std::chrono::minutes(15),
 			  std::chrono::minutes(6),
-			  _allow_limit_break,
+			  at_limit_param,
 			  _anticipation_timeout)
       {
 	// empty
       }
 
 
-      inline void add_request(R&& request,
-			      const C& client_id,
-			      const ReqParams& req_params,
-			      const Cost cost = 1u) {
-	add_request(typename super::RequestRef(new R(std::move(request))),
-		    client_id,
-		    req_params,
-		    get_time(),
-		    cost);
+      int add_request(R&& request,
+		      const C& client_id,
+		      const ReqParams& req_params,
+		      const Cost cost = 1u) {
+	return add_request(typename super::RequestRef(new R(std::move(request))),
+			   client_id,
+			   req_params,
+			   get_time(),
+			   cost);
       }
 
 
-      inline void add_request(R&& request,
-			      const C& client_id,
-			      const Cost cost = 1u) {
+      int add_request(R&& request,
+		      const C& client_id,
+		      const Cost cost = 1u) {
 	static const ReqParams null_req_params;
-	add_request(typename super::RequestRef(new R(std::move(request))),
-		    client_id,
-		    null_req_params,
-		    get_time(),
-		    cost);
+	return add_request(typename super::RequestRef(new R(std::move(request))),
+			   client_id,
+			   null_req_params,
+			   get_time(),
+			   cost);
       }
 
 
-      inline void add_request_time(R&& request,
-				   const C& client_id,
-				   const ReqParams& req_params,
-				   const Time time,
-				   const Cost cost = 1u) {
-	add_request(typename super::RequestRef(new R(std::move(request))),
-		    client_id,
-		    req_params,
-		    time,
-		    cost);
+      int add_request_time(R&& request,
+			   const C& client_id,
+			   const ReqParams& req_params,
+			   const Time time,
+			   const Cost cost = 1u) {
+	return add_request(typename super::RequestRef(new R(std::move(request))),
+			   client_id,
+			   req_params,
+			   time,
+			   cost);
       }
 
 
-      inline void add_request(typename super::RequestRef&& request,
-			      const C& client_id,
-			      const ReqParams& req_params,
-			      const Cost cost = 1u) {
-	add_request(request, req_params, client_id, get_time(), cost);
+      int add_request(typename super::RequestRef&& request,
+		      const C& client_id,
+		      const ReqParams& req_params,
+		      const Cost cost = 1u) {
+	return add_request(request, req_params, client_id, get_time(), cost);
       }
 
 
-      inline void add_request(typename super::RequestRef&& request,
-			      const C& client_id,
-			      const Cost cost = 1u) {
+      int add_request(typename super::RequestRef&& request,
+		      const C& client_id,
+		      const Cost cost = 1u) {
 	static const ReqParams null_req_params;
-	add_request(request, null_req_params, client_id, get_time(), cost);
+	return add_request(request, null_req_params, client_id, get_time(), cost);
       }
 
 
       // this does the work; the versions above provide alternate interfaces
-      void add_request(typename super::RequestRef&& request,
-		       const C& client_id,
-		       const ReqParams& req_params,
-		       const Time time,
-		       const Cost cost = 1u) {
+      int add_request(typename super::RequestRef&& request,
+		      const C& client_id,
+		      const ReqParams& req_params,
+		      const Time time,
+		      const Cost cost = 1u) {
 	typename super::DataGuard g(this->data_mtx);
 #ifdef PROFILE
 	add_request_timer.start();
 #endif
-	super::do_add_request(std::move(request),
-			      client_id,
-			      req_params,
-			      time,
-			      cost);
+	int r = super::do_add_request(std::move(request),
+				      client_id,
+				      req_params,
+				      time,
+				      cost);
 	// no call to schedule_request for pull version
 #ifdef PROFILE
 	add_request_timer.stop();
 #endif
+	return r;
       }
 
 
@@ -1373,17 +1435,18 @@ namespace crimson {
 
 	switch(next.heap_id) {
 	case super::HeapId::reservation:
-	  super::pop_process_request(this->resv_heap,
+	  (void) super::pop_process_request(this->resv_heap,
 				     process_f(result,
 					       PhaseType::reservation));
 	  ++this->reserv_sched_count;
 	  break;
 	case super::HeapId::ready:
-	  super::pop_process_request(this->ready_heap,
+	  {
+	    auto tag = super::pop_process_request(this->ready_heap,
 				     process_f(result, PhaseType::priority));
-	  { // need to use retn temporarily
+	    // need to use retn temporarily
 	    auto& retn = boost::get<typename PullReq::Retn>(result.data);
-	    super::reduce_reservation_tags(retn.client);
+	    super::reduce_reservation_tags(retn.client, tag);
 	  }
 	  ++this->prop_sched_count;
 	  break;
@@ -1411,7 +1474,7 @@ namespace crimson {
 
 
     // PUSH version
-    template<typename C, typename R, bool IsDelayed=true, bool U1=false, uint B=2>
+    template<typename C, typename R, bool IsDelayed=false, bool U1=false, uint B=2>
     class PushPriorityQueue : public PriorityQueueBase<C,R,IsDelayed,U1,B> {
 
     protected:
@@ -1458,11 +1521,11 @@ namespace crimson {
 			std::chrono::duration<Rep,Per> _idle_age,
 			std::chrono::duration<Rep,Per> _erase_age,
 			std::chrono::duration<Rep,Per> _check_time,
-			bool _allow_limit_break = false,
+			AtLimitParam at_limit_param = AtLimit::Wait,
 			double anticipation_timeout = 0.0) :
 	super(_client_info_f,
 	      _idle_age, _erase_age, _check_time,
-	      _allow_limit_break, anticipation_timeout)
+	      at_limit_param, anticipation_timeout)
       {
 	can_handle_f = _can_handle_f;
 	handle_f = _handle_f;
@@ -1474,7 +1537,7 @@ namespace crimson {
       PushPriorityQueue(typename super::ClientInfoFunc _client_info_f,
 			CanHandleRequestFunc _can_handle_f,
 			HandleRequestFunc _handle_f,
-			bool _allow_limit_break = false,
+			AtLimitParam at_limit_param = AtLimit::Wait,
 			double _anticipation_timeout = 0.0) :
 	PushPriorityQueue(_client_info_f,
 			  _can_handle_f,
@@ -1482,7 +1545,7 @@ namespace crimson {
 			  std::chrono::minutes(10),
 			  std::chrono::minutes(15),
 			  std::chrono::minutes(6),
-			  _allow_limit_break,
+			  at_limit_param,
 			  _anticipation_timeout)
       {
 	// empty
@@ -1497,57 +1560,60 @@ namespace crimson {
 
     public:
 
-      inline void add_request(R&& request,
-			      const C& client_id,
-			      const ReqParams& req_params,
-			      const Cost cost = 1u) {
-	add_request(typename super::RequestRef(new R(std::move(request))),
-		    client_id,
-		    req_params,
-		    get_time(),
-		    cost);
+      int add_request(R&& request,
+		      const C& client_id,
+		      const ReqParams& req_params,
+		      const Cost cost = 1u) {
+	return add_request(typename super::RequestRef(new R(std::move(request))),
+			   client_id,
+			   req_params,
+			   get_time(),
+			   cost);
       }
 
 
-      inline void add_request(typename super::RequestRef&& request,
-			      const C& client_id,
-			      const ReqParams& req_params,
-			      const Cost cost = 1u) {
-	add_request(request, req_params, client_id, get_time(), cost);
+      int add_request(typename super::RequestRef&& request,
+		      const C& client_id,
+		      const ReqParams& req_params,
+		      const Cost cost = 1u) {
+	return add_request(request, req_params, client_id, get_time(), cost);
       }
 
 
-      inline void add_request_time(const R& request,
-				   const C& client_id,
-				   const ReqParams& req_params,
-				   const Time time,
-				   const Cost cost = 1u) {
-	add_request(typename super::RequestRef(new R(request)),
-		    client_id,
-		    req_params,
-		    time,
-		    cost);
+      int add_request_time(const R& request,
+			   const C& client_id,
+			   const ReqParams& req_params,
+			   const Time time,
+			   const Cost cost = 1u) {
+	return add_request(typename super::RequestRef(new R(request)),
+			   client_id,
+			   req_params,
+			   time,
+			   cost);
       }
 
 
-      void add_request(typename super::RequestRef&& request,
-		       const C& client_id,
-		       const ReqParams& req_params,
-		       const Time time,
-		       const Cost cost = 1u) {
+      int add_request(typename super::RequestRef&& request,
+		      const C& client_id,
+		      const ReqParams& req_params,
+		      const Time time,
+		      const Cost cost = 1u) {
 	typename super::DataGuard g(this->data_mtx);
 #ifdef PROFILE
 	add_request_timer.start();
 #endif
-	super::do_add_request(std::move(request),
-			      client_id,
-			      req_params,
-			      time,
-			      cost);
-	schedule_request();
+	int r = super::do_add_request(std::move(request),
+				      client_id,
+				      req_params,
+				      time,
+				      cost);
+        if (r == 0) {
+	  schedule_request();
+        }
 #ifdef PROFILE
 	add_request_timer.stop();
 #endif
+	return r;
       }
 
 
@@ -1578,10 +1644,11 @@ namespace crimson {
 	       IndIntruHeapData super::ClientRec::*C2,
 	       typename C3,
 	       uint B4>
-      C submit_top_request(IndIntruHeap<C1,typename super::ClientRec,C2,C3,B4>& heap,
-			   PhaseType phase) {
+      typename super::RequestMeta
+      submit_top_request(IndIntruHeap<C1,typename super::ClientRec,C2,C3,B4>& heap,
+			 PhaseType phase) {
 	C client_result;
-	super::pop_process_request(heap,
+	RequestTag tag = super::pop_process_request(heap,
 				   [this, phase, &client_result]
 				   (const C& client,
 				    const Cost request_cost,
@@ -1589,13 +1656,13 @@ namespace crimson {
 				     client_result = client;
 				     handle_f(client, std::move(request), phase, request_cost);
 				   });
-	return client_result;
+	typename super::RequestMeta req(client_result, tag);
+	return req;
       }
 
 
       // data_mtx should be held when called
       void submit_request(typename super::HeapId heap_id) {
-	C client;
 	switch(heap_id) {
 	case super::HeapId::reservation:
 	  // don't need to note client
@@ -1605,8 +1672,10 @@ namespace crimson {
 	  ++this->reserv_sched_count;
 	  break;
 	case super::HeapId::ready:
-	  client = submit_top_request(this->ready_heap, PhaseType::priority);
-	  super::reduce_reservation_tags(client);
+	  {
+	    auto req = submit_top_request(this->ready_heap, PhaseType::priority);
+	    super::reduce_reservation_tags(req.client_id, req.tag);
+	  }
 	  ++this->prop_sched_count;
 	  break;
 	default:
